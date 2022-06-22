@@ -1,0 +1,8 @@
+Fast and simple application for routine analysis of sand samples
+
+This app allows you:
+    -Calculate main sand indices
+    -Check the granulometric curves
+    -Store all samples information in single database
+    -Work with database
+

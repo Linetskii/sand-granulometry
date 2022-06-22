@@ -1,0 +1,4 @@
+sep = ' '
+rnd_ind = 1
+rnd_frac = 2
+def_fract = standard
