@@ -36,7 +36,7 @@ class Sample(ttk.Frame):
         super().__init__(container)
         db.update_pzl()
         self.left_frame = Frame(self)
-        self.left_frame.pack(side=LEFT, anchor='nw')
+        self.left_frame.pack(side=LEFT, anchor='nw', fill='y')
         # Create input block
         self.info_frame = Frame(self.left_frame)
         self.info_frame.pack(anchor='nw')
@@ -83,19 +83,15 @@ class Sample(ttk.Frame):
         self.date_entry.insert(END, 'yyyy.mm.dd')
         self.date_entry.grid(row=7, column=1)
 
-        self.fractions_label = Label(self.info_frame, text='Fractions')
+        self.fractions_label = Label(self.info_frame, text='Fractions and weights:')
         self.fractions_label.grid(row=8, column=0, sticky='w')
-        self.fractions_combobox = ttk.Combobox(self.info_frame, postcommand=upd_fract,
-                                               values=list(db.upd_dict['fractions'].keys()), width=37)
-        self.fractions_combobox.grid(row=8, column=1)
 
-        self.weight_label = Label(self.info_frame, text='Weight of fractions')
-        self.weight_label.grid(row=9, column=0, sticky='w')
-        self.weight_entry = Entry(self.info_frame, width=40)
-        self.weight_entry.grid(row=9, column=1)
-        # frame for buttons
-        self.btn_frame = Frame(self.info_frame)
-        self.btn_frame.grid(row=10, column=1)
+        self.weight_entry = classes.MultipleEntry(self.left_frame, db.upd_dict['fractions'][cfg.def_fract])
+        self.weight_entry.pack()
+        self.bind('<FocusIn>', self.upd_fw)
+
+        self.btn_frame = Frame(self.left_frame)
+        self.btn_frame.pack()
         # "check" button
         self.upd_btn = Button(self.btn_frame, text='Check', command=self.check_sample)
         self.upd_btn.grid(row=0, column=0)
@@ -103,31 +99,29 @@ class Sample(ttk.Frame):
         self.add_btn = Button(self.btn_frame, text='Add', command=self.add_btn_cmd)
         self.add_btn.grid(row=0, column=1)
 
-        # self.raw_weight = table.MultipleEntry(self, db.upd_dict['fractions'][cfg.def_fract], width=10)
-        # self.raw_weight.frame.pack(side=TOP, anchor='nw')
-
         # Create indices table
         self.indices_table = ttk.Treeview(self.left_frame, columns=tuple(range(8)), show='headings', height=1)
         self.indices_table['columns'] = list(range(8))
         for i in range(8):
             self.indices_table.column(i, width=50)
             self.indices_table.heading(i, text=storage.headers[7 + i])
-        self.indices_table.pack(anchor='w', expand=True)
-        # for i in range(8):
-        #     self.indices_table.heading(i, text=table.headers[7 + i])
+        self.indices_table.pack(pady=20)
 
         # Create fractions table
         self.fractions_table = ttk.Treeview(self.left_frame, columns=('0', '1'), show='headings', height=10)
-        self.fractions_table.pack(anchor='w')
+        self.fractions_table.pack(anchor='n')
         self.fractions_table.heading('0', text='Fractions')
         self.fractions_table.heading('1', text='Weights')
 
         self.right_frame = Frame(self)
-        self.right_frame.pack(side=RIGHT, anchor='nw')
+        self.right_frame.pack(anchor='nw')
 
         # Create cumulative curve plot
         self.curve = classes.Curve(self.right_frame)
-        self.curve.curve_frame.pack(side=LEFT, expand=True, anchor='nw')
+        self.curve.curve_frame.pack(padx=20)
+
+    def upd_fw(self, event):
+        self.weight_entry.upd(db.upd_dict['fractions'][cfg.def_fract])
 
     def gather_info(self):
         return storage.SampleData(
@@ -142,8 +136,8 @@ class Sample(ttk.Frame):
         )
 
     def compute(self):
-        fractions = db.upd_dict['fractions'][self.fractions_combobox.get()]
-        weights = array(self.weight_entry.get().split(cfg.sep), dtype=float)
+        fractions = db.upd_dict['fractions'][cfg.def_fract]
+        weights = array(self.weight_entry.get(), dtype=float)
         cumulative_weights = cumsum(100 * weights / sum(weights)).round(cfg.rnd_frac)
         percentiles = (5, 16, 25, 50, 68, 75, 84, 95)
         phi = dict(zip(percentiles, interp(percentiles, cumulative_weights, fractions)))
@@ -297,7 +291,7 @@ class Settings(ttk.Frame):
 
     def add_fractoins(self):
         with open('fractions.txt', 'a') as f:
-            f.write(f'{self.fract_name}: {self.fract_sch}')
+            f.write(f'\n{self.fract_name.get()}: {self.fract_sch.get()}')
         upd_fract()
 
     def del_fractions(self):

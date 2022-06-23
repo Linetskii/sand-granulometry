@@ -6,22 +6,38 @@ from matplotlib.figure import Figure
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2Tk
 
 
-# class MultipleEntry:
-#     def __init__(self, root, hdrs, width):
-#         self.frame = Frame(root)
-#         self.headers = []
-#         self.entry = []
-#         for i in range(len(hdrs)):
-#             self.headers.append(Entry(self.frame, width=width))
-#             self.headers[i].insert(END, hdrs[i])
-#             self.headers[i].config.txt(state=DISABLED)
-#             self.headers[i].grid(row=0, column=i)
-#             self.entry.append(Entry(self.frame, width=width))
-#             self.entry[i].grid(row=1, column=i)
-#             self.entry[i].bind('<Right>', self.right)
-#
-#     def right(self, event):
-#         event.
+class MultipleEntry(Frame):
+    def __init__(self, root, hdrs: tuple):
+        super().__init__(root)
+        self.headers = []
+        self.entry = []
+        self.upd(hdrs)
+        # self.headers = []
+        # self.entry = []
+        # for i in range(len(hdrs)):
+        #     self.headers.append(Entry(self, width=5))
+        #     self.headers[i].insert(END, hdrs[i])
+        #     self.headers[i].config(state=DISABLED)
+        #     self.headers[i].grid(row=0, column=i)
+        #     self.entry.append(Entry(self, width=5))
+        #     self.entry[i].grid(row=1, column=i)
+
+    def get(self):
+        get_all = []
+        for i in self.entry:
+            get_all.append(i.get())
+        return get_all
+
+    def upd(self, hdrs):
+        self.headers = []
+        self.entry = []
+        for i in range(len(hdrs)):
+            self.headers.append(Entry(self, width=5))
+            self.headers[i].insert(END, hdrs[i])
+            self.headers[i].config(state=DISABLED)
+            self.headers[i].grid(row=0, column=i)
+            self.entry.append(Entry(self, width=5))
+            self.entry[i].grid(row=1, column=i)
 
 
 class Table:
@@ -37,15 +53,12 @@ class Table:
         self.scrollbar = Scrollbar(self.wrapper)
         self.scrollbar.pack(side=RIGHT, fill=Y)
         # Create the table
-        # self.trv = Treeview(self.wrapper, columns=list(range(self.width)), show='headings', height=rows,
-        #                     yscrollcommand=self.scrollbar.set, selectmode='extended')
         self.trv = Treeview(self.wrapper, height=int(scr_height/30))
         self.trv['columns'] = self.columns
         self.trv.column('#0', width=0)
         for i in self.columns:
             self.trv.column(i, width=int(scr_width / len(columns)) - 2)
-
-        # Bind events: right click, left click and hoover
+        # Bind events: right click, left click
         self.trv.bind('<Button-1>', self.click)
         self.trv.bind('<Button-3>', self.rclick)
         # self.trv.bind('<Motion>', self.hlp)
@@ -155,12 +168,6 @@ class Table:
             to_l.grid(row=1, column=0)
             lb = Listbox(filter_window, selectmode=MULTIPLE)
             lb.grid(row=2, column=0)
-            # child_set = set()
-            # for child in self.trv.get_children():
-            #   child_set.add(self.trv.item(child)['values'][column])
-            # for i in child_set:
-            #   lb.insert(END, i)
-            # better write it before
             for child in self.trv.get_children():
                 lb.insert(END, self.trv.item(child)['values'][column])
             f = partial(self.filtration, self.columns[column], lb)
@@ -177,7 +184,7 @@ class Curve:
     def __init__(self, root):
         # Create the frame for the plot
         self.curve_frame = Frame(root, height=1, width=1)
-        self.curve = Figure(figsize=(6, 4), dpi=100)
+        self.curve = Figure(figsize=(12, 8), dpi=100)
         # Insert the plot into tk frame
         self.curve_canvas = FigureCanvasTkAgg(self.curve, self.curve_frame)
         NavigationToolbar2Tk(self.curve_canvas, self.curve_frame)
