@@ -199,7 +199,7 @@ def add(fractions, c_weights, indices, info):
         "{info.lon}",
         "{info.sampling_date}",
         "{get_id('person', info.collector)}",
-        "{date.today().strftime('Y%.m%.d%')}",
+        "{date.today().strftime('%Y.%m.%d')}",
         "{get_id('person', info.performer)}",
         "{indices.MdPhi}",
         "{indices.Mz}",
@@ -223,7 +223,7 @@ def add(fractions, c_weights, indices, info):
 
 
 # create connection with SQL database.
-connection = create_connection('GCDB')
+connection = create_connection('GCDB.sqlite3')
 db_from = '''
 locations
     INNER JOIN samples USING (location_id)

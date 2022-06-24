@@ -12,15 +12,6 @@ class MultipleEntry(Frame):
         self.headers = []
         self.entry = []
         self.upd(hdrs)
-        # self.headers = []
-        # self.entry = []
-        # for i in range(len(hdrs)):
-        #     self.headers.append(Entry(self, width=5))
-        #     self.headers[i].insert(END, hdrs[i])
-        #     self.headers[i].config(state=DISABLED)
-        #     self.headers[i].grid(row=0, column=i)
-        #     self.entry.append(Entry(self, width=5))
-        #     self.entry[i].grid(row=1, column=i)
 
     def get(self):
         get_all = []
@@ -127,7 +118,7 @@ class Table:
         :return:
         """
         if self.trv.identify('region', event.x, event.y) == 'heading':
-            column_number = int(self.trv.identify_column(event.x)[1]) - 1
+            column_number = int(self.trv.identify_column(event.x)[1:]) - 1
             self.sorting(column_number)
 
     def filtration(self, column, lb):
@@ -158,7 +149,7 @@ class Table:
         :return: None
         """
         if self.trv.identify('region', event.x, event.y) == 'heading':
-            column = int(self.trv.identify_column(event.x)[1]) - 1
+            column = int(self.trv.identify_column(event.x)[1:]) - 1
             filter_window = Tk()
             filter_window.attributes('-topmost', 1)
             filter_window.title(string='Filter')

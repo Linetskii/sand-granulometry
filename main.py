@@ -121,7 +121,9 @@ class Sample(ttk.Frame):
         self.curve.curve_frame.pack(padx=20)
 
     def upd_fw(self, event):
-        self.weight_entry.upd(db.upd_dict['fractions'][cfg.def_fract])
+        if len(self.weight_entry.headers) != len(db.upd_dict['fractions'][cfg.def_fract]):
+            print(len(self.weight_entry.headers), len(cfg.def_fract))
+            self.weight_entry.upd(db.upd_dict['fractions'][cfg.def_fract])
 
     def gather_info(self):
         return storage.SampleData(
@@ -190,6 +192,7 @@ class CompareSamples(ttk.Frame):
         comp_table = classes.Table(self, columns=db.headers, scr_width=self.winfo_screenwidth(),
                                    scr_height=self.winfo_screenheight(), name='CompareSamples', tables=db.tables)
         comp_table.wrapper.pack()
+        self.bind('<FocusIn>', comp_table.update())
 
 
 class Settings(ttk.Frame):
