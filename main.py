@@ -21,7 +21,6 @@ class App(Tk):
         # create tabs
         self.Sample = Sample(self.notebook)
         self.CompareSamples = CompareSamples(self.notebook)
-
         self.Settings = Settings(self.notebook)
         # self.Help = Help(self.notebook)
         # Add tabs to notebook
@@ -118,7 +117,7 @@ class Sample(ttk.Frame):
 
         # Create cumulative curve plot
         self.curve = classes.Curve(self.right_frame)
-        self.curve.curve_frame.pack(padx=20)
+        self.curve.pack(padx=20)
 
     def upd_fw(self, event):
         if len(self.weight_entry.headers) != len(db.upd_dict['fractions'][cfg.def_fract]):
@@ -169,7 +168,7 @@ class Sample(ttk.Frame):
         for i in range(len(fractions)):
             self.fractions_table.insert('', 'end', values=(fractions[i], cumulative_weights[i]))
 
-        self.curve.update(fractions, cumulative_weights, self.sample_entry.get())
+        self.curve.upd([fractions], [cumulative_weights], [self.sample_entry.get()])
 
     def add_btn_cmd(self):
         db.add(*self.compute(), self.gather_info())
@@ -189,10 +188,14 @@ class Sample(ttk.Frame):
 class CompareSamples(ttk.Frame):
     def __init__(self, container):
         super().__init__(container)
-        comp_table = classes.Table(self, columns=storage.headers, scr_width=self.winfo_screenwidth(),
-                                   scr_height=self.winfo_screenheight(), name='CompareSamples', tables=db.tables)
-        comp_table.wrapper.pack()
-        self.bind('<FocusIn>', comp_table.update())
+        self.comp_table = classes.Table(self, columns=storage.headers, scr_width=self.winfo_screenwidth(),
+                                        scr_height=self.winfo_screenheight(), name='CompareSamples', tables=db.tables)
+        self.comp_table.pack()
+        self.bind('<FocusIn>', self.comp_table.update())
+    #     self.btn = Button(text='Plot selected', command=)
+    #
+    # def plot(self):
+    #     self.comp_table.plot()
 
 
 class Settings(ttk.Frame):
@@ -226,7 +229,6 @@ class Settings(ttk.Frame):
                                      width=38)
         self.fract_cb.insert(END, cfg.def_fract)
         self.fract_cb.grid(row=4, column=1)
-        # self.fract_del_button = Button(text='Delete selected', command=self.del_fractions)
 
         self.apply_button = Button(self.set_lb, text='Apply settings', command=self.apply)
         self.apply_button.grid(row=5, column=0)
@@ -296,9 +298,6 @@ class Settings(ttk.Frame):
         with open('fractions.txt', 'a') as f:
             f.write(f'\n{self.fract_name.get()}: {self.fract_sch.get()}')
         upd_fract()
-
-    def del_fractions(self):
-        db.upd_dict['fractions'].pop(key=self.fract_cb.get())
 
 
 # class Help(ttk.Frame):

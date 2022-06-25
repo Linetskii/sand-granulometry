@@ -34,7 +34,6 @@ class CFG:
     rnd_ind: int = '1'
     rnd_frac: int = '2'
     def_fract: str = 'standard'
-    # fractions: dict[str, tuple[int, float]] = (-4, -3.5, -2.5, -2, -1.5, -1, -0.5, 0, 0.5, 1)
 
     def update(self):
         with open('config.txt', 'r') as config:

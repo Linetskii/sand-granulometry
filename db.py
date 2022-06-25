@@ -232,10 +232,6 @@ locations
     INNER JOIN (SELECT person_id as p, person as performer_name FROM persons) ON p = samples.performer
 '''
 
-
-# headers = ('collector', 'sampling_date', 'performer', 'analysis_date', 'sample', 'location', 'zone', 'lat', 'lon', 'Mdφ', 'Mz',
-#            'QDφ', 'σ_1', 'Skqφ', 'Sk_1', 'KG', 'SD')
-
 tables = '''
 locations
     INNER JOIN samples USING (location_id)
@@ -243,7 +239,6 @@ locations
     INNER JOIN (SELECT person_id as pid, person as collector_name FROM persons) ON pid = samples.collector
     INNER JOIN (SELECT person_id as p, person as performer_name FROM persons) ON p = samples.performer
 '''
-
 
 upd_dict = {
     'locations': (),

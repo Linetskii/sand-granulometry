@@ -3,7 +3,7 @@ from tkinter.ttk import Treeview
 from functools import partial
 
 import storage
-from db import read_query
+from db import read_query, get_id
 from matplotlib.figure import Figure
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2Tk
 
@@ -33,20 +33,20 @@ class MultipleEntry(Frame):
             self.entry[i].grid(row=1, column=i)
 
 
-class Table:
+class Table(LabelFrame):
     """
     Create the table with sorting (LMB on heading) and filter (RMB on heading)
     """
     def __init__(self, root, scr_width, scr_height, columns, name: str, tables):
+        super().__init__(root, text=name)
         self.columns = columns
         # Create the LabelFrame with the table label
-        self.wrapper = LabelFrame(root, text=name)
-        self.wrapper.pack(fill='both', expand=1)
+        self.pack(fill='both', expand=1)
         # Create scrollbar for table
-        self.scrollbar = Scrollbar(self.wrapper)
+        self.scrollbar = Scrollbar(self)
         self.scrollbar.pack(side=RIGHT, fill=Y)
         # Create the table
-        self.trv = Treeview(self.wrapper, height=int(scr_height/30))
+        self.trv = Treeview(self, height=int(scr_height/30))
         self.trv['columns'] = self.columns
         self.trv.column('#0', width=0)
         for i in self.columns:
@@ -54,8 +54,10 @@ class Table:
         # Bind events: right click, left click
         self.trv.bind('<Button-1>', self.click)
         self.trv.bind('<Button-3>', self.rclick)
-        # self.trv.bind('<Motion>', self.hlp)
+        # self.trv.bind('<<TreeviewSelect>>', self.plot)
         self.trv.pack()
+        self.btn = Button(self, text='Plot', command=self.plot)
+        self.btn.pack()
         # Variables with current sorting and filter parameters
         self.order = 0
         self.order_by = columns[0]
@@ -68,18 +70,6 @@ class Table:
         self.scrollbar.config(command=self.trv.yview)
         # update table after creation
         self.update()
-
-    # def hlp(self, event):
-    #     """
-    #     Show the description of each header
-    #     :param event: when description shows
-    #     :return: None
-    #     """
-    #     self.trv.unbind('<Motion>')
-    #     if self.trv.identify('region', event.x, event.y) == 'heading':
-    #         column_number = int(self.trv.identify_column(event.x)[1]) - 1
-    #         print(self.columns[column_number])
-    #     self.trv.bind('<Motion>', self.hlp)
 
     def update(self):
         """
@@ -156,9 +146,7 @@ class Table:
         """
         if self.trv.identify('region', event.x, event.y) == 'heading':
             column = int(self.trv.identify_column(event.x)[1:]) - 1
-            print(column)
             filter_window = Toplevel()
-            #filter_window.attributes('-topmost', 1)
             filter_window.title(string='Filtration')
             f_label = Label(filter_window, text=self.columns[column])
             f_label.pack()
@@ -195,18 +183,45 @@ class Table:
             clear_button = Button(lb_frame, text='Clear all', command=self.clear_filter)
             clear_button.grid(row=9, column=0)
 
+    def plot(self):
+        selected = self.trv.selection()
+        sel_samp = []
+        sel_fract = []
+        sel_weight = []
+        for i in selected:
+            sample = self.trv.item(i)['values'][4]
+            sel_samp.append(sample)
+            res = read_query(f'''
+            SELECT fraction, weight
+            FROM fractions
+            WHERE sample_id = {get_id('sample', sample)}
+            ''')
+            fr = []
+            w = []
+            for j in res:
+                fr.append(j[0])
+                w.append(j[1])
+            sel_fract.append(tuple(fr))
+            sel_weight.append(tuple(w))
+        plot_window = Toplevel()
+        plot_window.title(f'Compare Plots {sel_samp}')
+        plot_window.state('zoomed')
+        plot = Curve(plot_window)
+        plot.pack()
+        plot.upd(sel_fract, sel_weight, sel_samp)
 
-class Curve:
+
+class Curve(Frame):
     """
     Plot of sand cumulative curve
     """
     def __init__(self, root):
+        super().__init__(root)
         # Create the frame for the plot
-        self.curve_frame = Frame(root, height=1, width=1)
         self.curve = Figure(figsize=(12, 8), dpi=100)
         # Insert the plot into tk frame
-        self.curve_canvas = FigureCanvasTkAgg(self.curve, self.curve_frame)
-        NavigationToolbar2Tk(self.curve_canvas, self.curve_frame)
+        self.curve_canvas = FigureCanvasTkAgg(self.curve, self)
+        NavigationToolbar2Tk(self.curve_canvas, self)
         # Configure the plot
         self.axes = self.curve.add_subplot(xscale='linear', yscale='linear', ybound=(0, 100))
         self.axes.set_title('Cumulative curve')
@@ -218,9 +233,10 @@ class Curve:
         self.renderer = self.curve_canvas.renderer
         self.axes.draw(renderer=self.renderer)
 
-    def update(self, fractions, weights, labels):
+    def upd(self, fractions, weights, labels):
         self.axes.cla()
-        self.axes.plot(fractions, weights, color='black', label=labels)
+        for i in range(len(fractions)):
+            self.axes.plot(fractions[i], weights[i], label=labels[i])
         self.axes.legend()
         self.axes.set_title('Cumulative curve')
         self.axes.set_xlabel('Particle diameter, φ')
