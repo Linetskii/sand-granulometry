@@ -1,6 +1,8 @@
 from tkinter import *
 from tkinter.ttk import Treeview
 from functools import partial
+
+import storage
 from db import read_query
 from matplotlib.figure import Figure
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2Tk
@@ -121,6 +123,10 @@ class Table:
             column_number = int(self.trv.identify_column(event.x)[1:]) - 1
             self.sorting(column_number)
 
+    def from_to_filtration(self, column, from_e: Entry, to_e: Entry):
+        self.filters.add(f'{column} BETWEEN {from_e.get()} AND {to_e.get()}')
+        self.update()
+
     def filtration(self, column, lb):
         """
         filter the table
@@ -150,22 +156,44 @@ class Table:
         """
         if self.trv.identify('region', event.x, event.y) == 'heading':
             column = int(self.trv.identify_column(event.x)[1:]) - 1
-            filter_window = Tk()
-            filter_window.attributes('-topmost', 1)
-            filter_window.title(string='Filter')
-            from_l = Label(filter_window, text='From:')
-            from_l.grid(row=0, column=0)
-            to_l = Label(filter_window, text='To:')
-            to_l.grid(row=1, column=0)
-            lb = Listbox(filter_window, selectmode=MULTIPLE)
-            lb.grid(row=2, column=0)
+            print(column)
+            filter_window = Toplevel()
+            #filter_window.attributes('-topmost', 1)
+            filter_window.title(string='Filtration')
+            f_label = Label(filter_window, text=self.columns[column])
+            f_label.pack()
+            if column > 8:
+                description = Label(filter_window, text=storage.info[self.columns[column]], justify=LEFT)
+                description.pack()
+            if column > 8 or column == 1 or column == 3:
+                from_to_frame = Frame(filter_window)
+                from_to_frame.pack()
+                from_l = Label(from_to_frame, text='From:')
+                from_l.grid(row=0, column=0)
+                from_e = Entry(from_to_frame)
+                from_e.grid(row=1, column=0)
+                to_l = Label(from_to_frame, text='To:')
+                to_l.grid(row=2, column=0)
+                to_e = Entry(from_to_frame)
+                to_e.grid(row=3, column=0)
+                ftf = partial(self.from_to_filtration, self.columns[column], from_e, to_e)
+                from_to_filter = Button(from_to_frame, text='Filter', command=ftf)
+                from_to_filter.grid(row=6, column=0)
+            lb_frame = Frame(filter_window)
+            lb_frame.pack()
+            lb = Listbox(lb_frame, selectmode=MULTIPLE)
+            lb.grid(row=0, column=0)
+            lb_set = set()
             for child in self.trv.get_children():
-                lb.insert(END, self.trv.item(child)['values'][column])
+                lb_set.add(self.trv.item(child)['values'][column])
+            lb_set = sorted(list(lb_set))
+            for i in range(len(lb_set)):
+                lb.insert(END, lb_set[i])
             f = partial(self.filtration, self.columns[column], lb)
-            filter_button = Button(filter_window, text='Filter', command=f)
-            filter_button.grid(row=3, column=0)
-            clear_button = Button(filter_window, text='Clear all', command=self.clear_filter)
-            clear_button.grid(row=4, column=0)
+            filter_button = Button(lb_frame, text='Filter', command=f)
+            filter_button.grid(row=8, column=0)
+            clear_button = Button(lb_frame, text='Clear all', command=self.clear_filter)
+            clear_button.grid(row=9, column=0)
 
 
 class Curve:
@@ -181,7 +209,6 @@ class Curve:
         NavigationToolbar2Tk(self.curve_canvas, self.curve_frame)
         # Configure the plot
         self.axes = self.curve.add_subplot(xscale='linear', yscale='linear', ybound=(0, 100))
-        self.axes.plot([], [])
         self.axes.set_title('Cumulative curve')
         self.axes.set_xlabel('Particle diameter, φ')
         self.axes.set_ylabel('Cumulative weight %')
@@ -191,9 +218,10 @@ class Curve:
         self.renderer = self.curve_canvas.renderer
         self.axes.draw(renderer=self.renderer)
 
-    def update(self, fractions, weights):
+    def update(self, fractions, weights, labels):
         self.axes.cla()
-        self.axes.plot(fractions, weights, color='black')
+        self.axes.plot(fractions, weights, color='black', label=labels)
+        self.axes.legend()
         self.axes.set_title('Cumulative curve')
         self.axes.set_xlabel('Particle diameter, φ')
         self.axes.set_ylabel('Cumulative weight %')

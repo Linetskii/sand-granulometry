@@ -104,7 +104,7 @@ class Sample(ttk.Frame):
         self.indices_table['columns'] = list(range(8))
         for i in range(8):
             self.indices_table.column(i, width=50)
-            self.indices_table.heading(i, text=storage.headers[7 + i])
+            self.indices_table.heading(i, text=storage.headers[8 + i])
         self.indices_table.pack(pady=20)
 
         # Create fractions table
@@ -169,7 +169,7 @@ class Sample(ttk.Frame):
         for i in range(len(fractions)):
             self.fractions_table.insert('', 'end', values=(fractions[i], cumulative_weights[i]))
 
-        self.curve.update(fractions, cumulative_weights)
+        self.curve.update(fractions, cumulative_weights, self.sample_entry.get())
 
     def add_btn_cmd(self):
         db.add(*self.compute(), self.gather_info())
@@ -189,7 +189,7 @@ class Sample(ttk.Frame):
 class CompareSamples(ttk.Frame):
     def __init__(self, container):
         super().__init__(container)
-        comp_table = classes.Table(self, columns=db.headers, scr_width=self.winfo_screenwidth(),
+        comp_table = classes.Table(self, columns=storage.headers, scr_width=self.winfo_screenwidth(),
                                    scr_height=self.winfo_screenheight(), name='CompareSamples', tables=db.tables)
         comp_table.wrapper.pack()
         self.bind('<FocusIn>', comp_table.update())

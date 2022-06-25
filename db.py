@@ -83,8 +83,8 @@ def create_db():
     sample TEXT,
     location_id INTEGER NOT NULL,
     zone_id INTEGER NOT NULL,
-    lat TEXT,
-    lon TEXT,
+    latitude TEXT,
+    longitude TEXT,
     sampling_date TEXT,
     collector INTEGER NOT NULL,
     analysis_date TEXT,
@@ -190,7 +190,7 @@ def add(fractions, c_weights, indices, info):
     '''
     execute_query(new_person)
 
-    new_sample = f''' INSERT INTO samples (sample, location_id, zone_id, lat, lon, sampling_date, collector, 
+    new_sample = f''' INSERT INTO samples (sample, location_id, zone_id, latitude, longitude, sampling_date, collector, 
     analysis_date, performer, 'Mdφ', 'Mz', 'QDφ', 'σ_1', 'Skqφ', 'Sk_1', 'KG', 'SD')
     VALUES ( "{info.sample}", 
         "{get_id('location', info.location)}",
@@ -233,8 +233,8 @@ locations
 '''
 
 
-headers = ('collector', 'sampling_date', 'performer', 'analysis_date', 'sample', 'location', 'lat', 'lon', 'Mdφ', 'Mz',
-           'QDφ', 'σ_1', 'Skqφ', 'Sk_1', 'KG', 'SD')
+# headers = ('collector', 'sampling_date', 'performer', 'analysis_date', 'sample', 'location', 'zone', 'lat', 'lon', 'Mdφ', 'Mz',
+#            'QDφ', 'σ_1', 'Skqφ', 'Sk_1', 'KG', 'SD')
 
 tables = '''
 locations
