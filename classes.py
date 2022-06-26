@@ -1,21 +1,22 @@
 from tkinter import *
 from tkinter.ttk import Treeview
 from functools import partial
-
-import storage
-from db import read_query, get_id
 from matplotlib.figure import Figure
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2Tk
+from re import fullmatch
+import storage
+from db import read_query, get_id
 
 
 class MultipleEntry(Frame):
     """
     Grid of Entry widgets. 1st row - disabled headers.
     """
-    def __init__(self, root, hdrs: tuple):
+    def __init__(self, root, hdrs):
         super().__init__(root)
         self.headers = []
         self.entry = []
+        self.vcmd = (self.register(self.validate), '%P', '%W')
         self.upd(hdrs)
 
     def get(self) -> list:
@@ -27,19 +28,25 @@ class MultipleEntry(Frame):
             get_all.append(i.get())
         return get_all
 
-    def upd(self, hdrs: tuple) -> None:
+    def upd(self, hdrs) -> None:
         """
         Change the size and headers
         """
-        # self.headers = []
-        # self.entry = []
         for i in range(len(hdrs)):
             self.headers.append(Entry(self, width=5))
             self.headers[i].insert(END, hdrs[i])
             self.headers[i].config(state=DISABLED)
             self.headers[i].grid(row=0, column=i)
-            self.entry.append(Entry(self, width=5))
+            self.entry.append(Entry(self, width=5, validate='focusout', validatecommand=self.vcmd))
             self.entry[i].grid(row=1, column=i)
+
+    def validate(self, value: str, widget: str) -> bool:
+        if fullmatch(r'\d+(\.\d*)?', value):
+            self.nametowidget(widget).config(fg='black')
+            return True
+        else:
+            self.nametowidget(widget).config(fg='red')
+            return False
 
 
 class Table(LabelFrame):

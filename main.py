@@ -2,7 +2,6 @@ from tkinter import *
 from tkinter import ttk
 from numpy import array, cumsum, interp, log2, around
 import re
-from functools import partial
 
 import db
 import classes
@@ -37,9 +36,6 @@ class App(Tk):
 class Sample(ttk.Frame):
     def __init__(self, container):
         super().__init__(container)
-        # update values for comboboxes
-        # db.update_pzl()
-        # todo update as postcommand, also check, if sample name is in db
         # Create left frame
         self.left_frame = Frame(self)
         self.left_frame.pack(side=LEFT, anchor='nw', fill='y')
@@ -49,34 +45,28 @@ class Sample(ttk.Frame):
         # Collector
         self.collector_label = Label(self.info_frame, text='Collector')
         self.collector_label.grid(row=0, column=0, sticky='w')
-        self.upd_pers = partial(db.update, 'person')
-        self.collector_combobox = ttk.Combobox(self.info_frame, postcommand=self.upd_pers,
-                                               values=db.upd_dict['persons'], width=37)
+        self.collector_combobox = ttk.Combobox(self.info_frame, postcommand=self.upd_persons, width=37)
         self.collector_combobox.grid(row=0, column=1)
         # Performer
         self.performer_label = Label(self.info_frame, text='Performer')
         self.performer_label.grid(row=1, column=0, sticky='w')
-        self.performer_combobox = ttk.Combobox(self.info_frame, postcommand=self.upd_pers,
-                                               values=db.upd_dict['persons'], width=37)
+        self.performer_combobox = ttk.Combobox(self.info_frame, postcommand=self.upd_persons, width=37)
         self.performer_combobox.grid(row=1, column=1)
         # Sample
         self.sample_label = Label(self.info_frame, text='Sample name')
         self.sample_label.grid(row=2, column=0, sticky='w')
-        self.sample_entry = Entry(self.info_frame, width=40)
+        s_vcmd = (self.register(self.validate_sample), '%P')
+        self.sample_entry = Entry(self.info_frame, validate='focusout', validatecommand=s_vcmd, width=40)
         self.sample_entry.grid(row=2, column=1)
         # Location
         self.location_label = Label(self.info_frame, text='Location name')
         self.location_label.grid(row=3, column=0, sticky='w')
-        self.upd_loc = partial(db.update, 'location')
-        self.location_combobox = ttk.Combobox(self.info_frame, postcommand=self.upd_loc,
-                                              values=db.upd_dict['locations'], width=37)
+        self.location_combobox = ttk.Combobox(self.info_frame, postcommand=self.upd_locations, width=37)
         self.location_combobox.grid(row=3, column=1)
         # Zone
         self.zone_label = Label(self.info_frame, text='Zone')
         self.zone_label.grid(row=4, column=0, sticky='w')
-        self.upd_zones = partial(db.update, 'zone')
-        self.zone_combobox = ttk.Combobox(self.info_frame, postcommand=self.upd_zones,
-                                          values=db.upd_dict['zones'], width=37)
+        self.zone_combobox = ttk.Combobox(self.info_frame, postcommand=self.upd_zones, width=37)
         self.zone_combobox.grid(row=4, column=1, )
         # Latitude
         self.lat_label = Label(self.info_frame, text='Latitude')
@@ -98,7 +88,7 @@ class Sample(ttk.Frame):
         # Fractions and weights: Label and table of entry widgets
         self.fractions_label = Label(self.info_frame, text='Fractions and weights:')
         self.fractions_label.grid(row=8, column=0, sticky='w')
-        self.weight_entry = classes.MultipleEntry(self.left_frame, db.fractions[cfg.def_fract])
+        self.weight_entry = classes.MultipleEntry(self.left_frame, upd_fract()[cfg.def_fract])
         self.weight_entry.pack()
         self.bind('<FocusIn>', self.upd_fw)
         # Frame for buttons
@@ -129,13 +119,23 @@ class Sample(ttk.Frame):
         self.curve = classes.Curve(self.right_frame)
         self.curve.pack(padx=20)
 
+    def upd_persons(self):
+        persons = db.update('person')
+        self.collector_combobox['values'] = persons
+        self.performer_combobox['values'] = persons
+
+    def upd_zones(self):
+        self.zone_combobox['values'] = db.update('zone')
+
+    def upd_locations(self):
+        self.location_combobox['values'] = db.update('location')
+
     def upd_fw(self, event) -> None:
         """
         Update fractions entry if scheme was modified in Settings
         """
-        if len(self.weight_entry.headers) != len(db.fractions[cfg.def_fract]):
-            print(len(self.weight_entry.headers), len(cfg.def_fract))
-            self.weight_entry.upd(db.fractions[cfg.def_fract])
+        if len(self.weight_entry.headers) != len(upd_fract()[cfg.def_fract]):
+            self.weight_entry.upd(upd_fract()[cfg.def_fract])
 
     def gather_info(self) -> storage.SampleData:
         """
@@ -156,7 +156,7 @@ class Sample(ttk.Frame):
         """
         :return: fractions and cumulative weights, indices values in IndicesData dataclass
         """
-        fractions = db.fractions[cfg.def_fract]
+        fractions = upd_fract()[cfg.def_fract]
         weights = array(self.weight_entry.get(), dtype=float)
         cumulative_weights = cumsum(100 * weights / sum(weights)).round(cfg.rnd_frac)
         percentiles = (5, 16, 25, 50, 68, 75, 84, 95)
@@ -198,15 +198,30 @@ class Sample(ttk.Frame):
 
     def vali_date(self, value: str) -> bool:
         """
-        Return True if value is yyyy.mm.dd date, else False
+        Validation of date
 
         :param value: date_entry string
-        :return: bool
+        :return: True if value is yyyy.mm.dd date, else False
         """
-        pattern = r'[1|2][0-9]{3}\.[01][0-9]\.[0-3][0-9]'
+        pattern = r'[1|2][0-9]{3}\.(0[1-9]|1[0-2])\.(0[1-9]|[1-2][0-9]|3[0-1])'
         if re.fullmatch(pattern, value) is None:
             self.date_entry.config(fg='red')
             self.add_btn.config(state='disabled', text='Please use yyyy.mm.dd date format.')
+            return False
+        else:
+            self.date_entry.config(fg='black')
+            self.add_btn.config(state='normal', text='Add')
+            return True
+
+    def validate_sample(self, value: str) -> bool:
+        """
+        Validation of sample
+        :param value: sample_entry string
+        :return: False if sample name already exists in database
+        """
+        if value in db.update('sample'):
+            self.sample_entry.config(fg='red')
+            self.add_btn.config(state='disabled', text=f'Sample "{value}" already exists')
             return False
         else:
             self.date_entry.config(fg='black')
@@ -255,8 +270,7 @@ class Settings(ttk.Frame):
         # Fractions scheme selection
         self.fract_label = Label(self.set_lb, text='Select fractions scheme')
         self.fract_label.grid(row=4, column=0)
-        self.fract_cb = ttk.Combobox(self.set_lb, postcommand=upd_fract, values=list(db.fractions.keys()),
-                                     width=38)
+        self.fract_cb = ttk.Combobox(self.set_lb, postcommand=self.upd_fractions, width=38)
         self.fract_cb.insert(END, cfg.def_fract)
         self.fract_cb.grid(row=4, column=1)
         # Apply Button
@@ -333,13 +347,16 @@ class Settings(ttk.Frame):
         cfg.def_fract = self.fract_cb.get()
         cfg.apply_settings()
 
+    def upd_fractions(self):
+        self.fract_cb['values'] = list(i for i in upd_fract().keys())
+
     def add_fractoins(self) -> None:
         """
         Add fractions to the fractions.txt, update dictionary
         """
         with open('fractions.txt', 'a') as f:
             f.write(f'\n{self.fract_name.get()}: {self.fract_sch.get()}')
-        upd_fract()
+        # upd_fract()
 
 
 # class Help(ttk.Frame):
@@ -351,15 +368,17 @@ class Settings(ttk.Frame):
 #         lf_ref = LabelFrame(self, text='References')
 
 
-def upd_fract() -> None:
+def upd_fract():
     """
     Update fractions dictionary. Used in "Add sample" and "Settings" tabs
     """
+    schemes = {}
     with open('fractions.txt', 'r') as f:
         for line in f:
             key, value = line.split(': ')
             value = array(value.split(), dtype=float)
-            db.fractions[key] = value
+            schemes[key] = value
+        return schemes
 
 
 if __name__ == '__main__':
@@ -369,8 +388,6 @@ if __name__ == '__main__':
     cfg = storage.CFG()
     # Update config.txt dataclass from config.txt file
     cfg.update()
-    # Update fractions from fractions.txt
-    upd_fract()
     # create Tk main window
     app = App()
     app.mainloop()

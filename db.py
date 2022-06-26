@@ -137,7 +137,7 @@ def get_id(item: str, val: str) -> str:
     return read_query(query)[0][0]
 
 
-def update(column: str, table: str = None) -> None:
+def update(column: str, table: str = None) -> tuple:
     """
     Update the upd_dict from SQL database. If table is not specified, uses column + 's' as table name
 
@@ -145,11 +145,9 @@ def update(column: str, table: str = None) -> None:
     :param table: table name
     """
     if table is None:
-        upd_dict[column + 's'] = tuple(map(lambda x: x[0],
-                                           read_query(f'''SELECT {column} FROM {column}s''')))
-        print(upd_dict[column + 's'])
+        return tuple(map(lambda x: x[0], read_query(f'''SELECT {column} FROM {column}s''')))
     else:
-        upd_dict[table] = list(map(lambda x: x[0], read_query(f'''SELECT {column} FROM {table}''')))
+        return tuple(map(lambda x: x[0], read_query(f'''SELECT {column} FROM {table}''')))
 
 
 def update_pzl(event=None) -> None:
@@ -246,7 +244,4 @@ upd_dict = {
     'samples': (),
     'zones': (),
     'persons': (),
-    # 'fractions': {}
 }
-# Dictionary for fractions
-fractions = {}
