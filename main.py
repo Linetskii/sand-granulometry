@@ -1,7 +1,11 @@
 from tkinter import *
 from tkinter import ttk
+from tkinter import filedialog
+
+import numpy
 from numpy import array, cumsum, interp, log2, around
 import re
+import openpyxl
 
 import db
 import classes
@@ -34,6 +38,9 @@ class App(Tk):
 
 
 class Sample(ttk.Frame):
+    """
+    Sample tab
+    """
     def __init__(self, container):
         super().__init__(container)
         # Create left frame
@@ -105,7 +112,7 @@ class Sample(ttk.Frame):
         self.indices_table['columns'] = list(range(8))
         for i in range(8):
             self.indices_table.column(i, width=50)
-            self.indices_table.heading(i, text=storage.headers[8 + i])
+            self.indices_table.heading(i, text=storage.headers[9 + i])
         self.indices_table.pack(pady=20)
         # Create fractions table
         self.fractions_table = ttk.Treeview(self.left_frame, columns=('0', '1'), show='headings', height=10)
@@ -118,16 +125,27 @@ class Sample(ttk.Frame):
         # Create cumulative curve plot in right frame
         self.curve = classes.Curve(self.right_frame)
         self.curve.pack(padx=20)
+        self.import_button = Button(self.left_frame, text='Import Excel file', command=self.import_excel)
+        self.import_button.pack()
 
     def upd_persons(self):
+        """
+        Update collector and performer combobox values from database
+        """
         persons = db.update('person')
         self.collector_combobox['values'] = persons
         self.performer_combobox['values'] = persons
 
     def upd_zones(self):
+        """
+        Update zone combobox values from database
+        """
         self.zone_combobox['values'] = db.update('zone')
 
     def upd_locations(self):
+        """
+        Update location combobox values from database
+        """
         self.location_combobox['values'] = db.update('location')
 
     def upd_fw(self, event) -> None:
@@ -152,16 +170,17 @@ class Sample(ttk.Frame):
             sampling_date=self.date_entry.get()
         )
 
-    def compute(self):
+    @staticmethod
+    def calculate_indices(fractions: numpy.array, weights: numpy.array):
         """
-        :return: fractions and cumulative weights, indices values in IndicesData dataclass
+        Calculations for compute and import methods
+
+        :return: Cumulative weights array and IndicesData dataclass with indices
         """
-        fractions = upd_fract()[cfg.def_fract]
-        weights = array(self.weight_entry.get(), dtype=float)
         cumulative_weights = cumsum(100 * weights / sum(weights)).round(cfg.rnd_frac)
         percentiles = (5, 16, 25, 50, 68, 75, 84, 95)
         phi = dict(zip(percentiles, interp(percentiles, cumulative_weights, fractions)))
-        return fractions, cumulative_weights, storage.IndicesData(
+        return cumulative_weights, storage.IndicesData(
             MdPhi=round(phi[50], cfg.rnd_ind),
             Mz=round((phi[16] + phi[50] + phi[84]) / 3, cfg.rnd_ind),
             QDPhi=round((phi[75] - phi[25]) / 2, cfg.rnd_ind),
@@ -172,6 +191,15 @@ class Sample(ttk.Frame):
             KG=round((phi[95] - phi[5]) / (2.44 * (phi[75] - phi[25])), cfg.rnd_ind),
             SD=round(phi[68], cfg.rnd_ind)
         )
+
+    def compute(self):
+        """
+        :return: fractions and cumulative weights, indices values in IndicesData dataclass
+        """
+        fractions = upd_fract()[cfg.def_fract]
+        weights = array(self.weight_entry.get(), dtype=float)
+        cumulative_weights, indices = self.calculate_indices(fractions, weights)
+        return fractions, cumulative_weights, indices
 
     def check_sample(self) -> None:
         """
@@ -228,8 +256,35 @@ class Sample(ttk.Frame):
             self.add_btn.config(state='normal', text='Add')
             return True
 
+    def import_excel(self):
+        # open Excel workbook
+        wb = openpyxl.load_workbook(filedialog.askopenfilename())
+        # open active sheet
+        worksheet = wb.active
+        fractions = []
+        # Read fractions
+        for col in worksheet.iter_cols(9, worksheet.max_column):
+            fractions.append(col[0].value)
+        fractions = array(fractions, dtype=float)
+        # Read rows
+        for i in range(1, worksheet.max_row):
+            row = []
+            # Read each column in row, write to row
+            for col in worksheet.iter_cols(1, worksheet.max_column):
+                row.append(col[i].value)
+            # Write weights
+            weights = array(row[8:worksheet.max_column], dtype=float)
+            # Write sample information to SampleData dataclass
+            info = storage.SampleData(*row[0:7], row[7].strftime("%Y.%m.%d"))
+            # Calculate cumulative weights and indices
+            cumulative_weights, indices = self.calculate_indices(fractions, weights)
+            db.add(fractions, cumulative_weights, indices, info)
+
 
 class CompareSamples(ttk.Frame):
+    """
+    Compare Samoles tab
+    """
     def __init__(self, container):
         super().__init__(container)
         # Table
@@ -241,6 +296,9 @@ class CompareSamples(ttk.Frame):
 
 
 class Settings(ttk.Frame):
+    """
+    Settings tab
+    """
     def __init__(self, container):
         super().__init__(container)
         # Little frame to align blocks
@@ -348,6 +406,9 @@ class Settings(ttk.Frame):
         cfg.apply_settings()
 
     def upd_fractions(self):
+        """
+        Update fractions combobox
+        """
         self.fract_cb['values'] = list(i for i in upd_fract().keys())
 
     def add_fractoins(self) -> None:
@@ -368,9 +429,11 @@ class Settings(ttk.Frame):
 #         lf_ref = LabelFrame(self, text='References')
 
 
-def upd_fract():
+def upd_fract() -> dict:
     """
-    Update fractions dictionary. Used in "Add sample" and "Settings" tabs
+    Read fractions.txt
+
+    :return: dictionary of fractions schemes
     """
     schemes = {}
     with open('fractions.txt', 'r') as f:

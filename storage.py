@@ -3,6 +3,9 @@ from dataclasses import dataclass, astuple
 
 @dataclass
 class IndicesData:
+    """
+    Indices of sample
+    """
     MdPhi: float
     Mz: float
     QDPhi: float
@@ -18,6 +21,9 @@ class IndicesData:
 
 @dataclass
 class SampleData:
+    """
+    Information about sample
+    """
     collector: str
     performer: str
     sample: str

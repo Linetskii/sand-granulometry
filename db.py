@@ -166,8 +166,8 @@ def add(fract, c_weights, indices, info) -> None:
 
     :param indices: Data class with indices
     :param info:  Data class with sample information
-    :param fract: sand fractions
-    :param c_weights: cumulative weights
+    :param fract: sand fractions iterable
+    :param c_weights: cumulative weights iterable
     """
     # Add location to locations table
     new_location = f'''
