@@ -3,7 +3,7 @@ from os import path, getcwd
 from datetime import date
 
 
-def create_connection(pth):
+def create_connection(pth: str):
     """
     Create the connection with SQL database
     :param pth: name of database file
@@ -18,7 +18,7 @@ def create_connection(pth):
     return con
 
 
-def execute_query(query: str):
+def execute_query(query: str) -> None:
     """
     Execute query
     :param query: SQL query
@@ -32,7 +32,7 @@ def execute_query(query: str):
         print(f"Can`t execute the query. The error '{e}' occurred")
 
 
-def read_query(query):
+def read_query(query: str) -> list:
     """
     Execute SELECT query, returns selected
     :param query: SQL query
@@ -47,7 +47,7 @@ def read_query(query):
         print(f"Can`t read the query. The error '{e}' occurred")
 
 
-def create_db():
+def create_db() -> None:
     """
     create locations, zones, persons, samples and fractions tables
     :return:
@@ -143,53 +143,53 @@ def update(column: str, table: str = None) -> None:
 
     :param column: column name
     :param table: table name
-    :return:
     """
     if table is None:
-        upd_dict[column + 's'] = list(map(lambda x: x[0],
-                                          read_query(f'''SELECT {column} FROM {column}s''')))
+        upd_dict[column + 's'] = tuple(map(lambda x: x[0],
+                                           read_query(f'''SELECT {column} FROM {column}s''')))
+        print(upd_dict[column + 's'])
     else:
         upd_dict[table] = list(map(lambda x: x[0], read_query(f'''SELECT {column} FROM {table}''')))
 
 
-def update_pzl() -> None:
+def update_pzl(event=None) -> None:
     """
     Update persons, zones and locations
-    :return:
     """
+    update('sample')
     update('person')
     update('zone')
     update('location')
 
 
-def add(fractions, c_weights, indices, info):
+def add(fract, c_weights, indices, info) -> None:
     """
+    Add sample into database
 
     :param indices: Data class with indices
-    :param info:  Data class with sampleinformation
-    :param fractions: sand fractions
+    :param info:  Data class with sample information
+    :param fract: sand fractions
     :param c_weights: cumulative weights
-    :return:
     """
-
+    # Add location to locations table
     new_location = f'''
-            INSERT INTO locations (location)
-            VALUES ("{info.location}")
-            '''
+    INSERT INTO locations (location)
+    VALUES ("{info.location}")
+    '''
     execute_query(new_location)
-
+    # Add zone to zones table
     new_zone = f'''
     INSERT INTO zones (zone)
     VALUES ("{info.zone}")
     '''
     execute_query(new_zone)
-
+    # Add person to persons table
     new_person = f'''
     INSERT INTO persons (person)
     VALUES ("{info.collector}"), ("{info.performer}")
     '''
     execute_query(new_person)
-
+    # Add sample to sample table
     new_sample = f''' INSERT INTO samples (sample, location_id, zone_id, latitude, longitude, sampling_date, collector, 
     analysis_date, performer, 'Mdφ', 'Mz', 'QDφ', 'σ_1', 'Skqφ', 'Sk_1', 'KG', 'SD')
     VALUES ( "{info.sample}", 
@@ -212,11 +212,11 @@ def add(fractions, c_weights, indices, info):
     )
     '''
     execute_query(new_sample)
-
-    for i in range(len(fractions)):
+    # Add fractions and weights into fractions table
+    for i in range(len(fract)):
         new_fractions = f'''
         INSERT INTO fractions (sample_id, fraction, weight)
-        VALUES ("{get_id('sample', info.sample)}", "{fractions[i]}", "{c_weights[i]}")
+        VALUES ("{get_id('sample', info.sample)}", "{fract[i]}", "{c_weights[i]}")
         '''
         execute_query(new_fractions)
     update_pzl()
@@ -224,6 +224,7 @@ def add(fractions, c_weights, indices, info):
 
 # create connection with SQL database.
 connection = create_connection('GCDB.sqlite3')
+# Part of query, that connect all tables
 db_from = '''
 locations
     INNER JOIN samples USING (location_id)
@@ -239,11 +240,13 @@ locations
     INNER JOIN (SELECT person_id as pid, person as collector_name FROM persons) ON pid = samples.collector
     INNER JOIN (SELECT person_id as p, person as performer_name FROM persons) ON p = samples.performer
 '''
-
+# Dictionary for comboboxes
 upd_dict = {
     'locations': (),
     'samples': (),
     'zones': (),
     'persons': (),
-    'fractions': {}
+    # 'fractions': {}
 }
+# Dictionary for fractions
+fractions = {}

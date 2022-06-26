@@ -9,21 +9,30 @@ from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolb
 
 
 class MultipleEntry(Frame):
+    """
+    Grid of Entry widgets. 1st row - disabled headers.
+    """
     def __init__(self, root, hdrs: tuple):
         super().__init__(root)
         self.headers = []
         self.entry = []
         self.upd(hdrs)
 
-    def get(self):
+    def get(self) -> list:
+        """
+        :return: list of data from 2nd row
+        """
         get_all = []
         for i in self.entry:
             get_all.append(i.get())
         return get_all
 
-    def upd(self, hdrs):
-        self.headers = []
-        self.entry = []
+    def upd(self, hdrs: tuple) -> None:
+        """
+        Change the size and headers
+        """
+        # self.headers = []
+        # self.entry = []
         for i in range(len(hdrs)):
             self.headers.append(Entry(self, width=5))
             self.headers[i].insert(END, hdrs[i])
@@ -35,7 +44,8 @@ class MultipleEntry(Frame):
 
 class Table(LabelFrame):
     """
-    Create the table with sorting (LMB on heading) and filter (RMB on heading)
+    Create the table with sorting (LMB on heading), filter (RMB on heading)
+    and plotting of selected samples ("Plot" button)
     """
     def __init__(self, root, scr_width, scr_height, columns, name: str, tables):
         super().__init__(root, text=name)
@@ -51,11 +61,11 @@ class Table(LabelFrame):
         self.trv.column('#0', width=0)
         for i in self.columns:
             self.trv.column(i, width=int(scr_width / len(columns)) - 2)
-        # Bind events: right click, left click
+        self.trv.pack()
+        # Bind events: right click and left click
         self.trv.bind('<Button-1>', self.click)
         self.trv.bind('<Button-3>', self.rclick)
-        # self.trv.bind('<<TreeviewSelect>>', self.plot)
-        self.trv.pack()
+        # "Plot" Button
         self.btn = Button(self, text='Plot', command=self.plot)
         self.btn.pack()
         # Variables with current sorting and filter parameters
@@ -71,11 +81,9 @@ class Table(LabelFrame):
         # update table after creation
         self.update()
 
-    def update(self):
+    def update(self) -> None:
         """
-        update the table
-
-        :return:
+        Update the table from database, using filters and sorting parameters
         """
         if self.filters != set(''):
             f = f'\nWHERE {" OR ".join(self.filters)}'
@@ -88,12 +96,11 @@ class Table(LabelFrame):
         for i in rows:
             self.trv.insert('', 'end', values=i)
 
-    def sorting(self, sort_by):
+    def sorting(self, sort_by: int) -> None:
         """
         Sort the table by specified column and reverse the order (ascending/descending)
 
         :param sort_by: column number
-        :return: None
         """
         self.order_by = self.columns[sort_by]
         if self.order == 0:
@@ -102,22 +109,27 @@ class Table(LabelFrame):
             self.order = 0
         self.update()
 
-    def click(self, event):
+    def click(self, event) -> None:
         """
         LMB click.
 
-        :param event:
-        :return:
+        :param event: click event
         """
         if self.trv.identify('region', event.x, event.y) == 'heading':
             column_number = int(self.trv.identify_column(event.x)[1:]) - 1
             self.sorting(column_number)
 
-    def from_to_filtration(self, column, from_e: Entry, to_e: Entry):
+    def from_to_filtration(self, column: str, from_e: Entry, to_e: Entry) -> None:
+        """
+        filter all values between 'from' and 'to' values
+        :param column: column name
+        :param from_e: From Entry
+        :param to_e: to Entry
+        """
         self.filters.add(f'{column} BETWEEN {from_e.get()} AND {to_e.get()}')
         self.update()
 
-    def filtration(self, column, lb):
+    def filtration(self, column: str, lb: Listbox) -> None:
         """
         filter the table
 
@@ -129,30 +141,31 @@ class Table(LabelFrame):
             self.filters.add(f'{column} = "{lb.get(i)}"')
         self.update()
 
-    def clear_filter(self):
+    def clear_filter(self) -> None:
         """
         Clear all filters
-
-        :return: None
         """
         self.filters = set('')
         self.update()
 
-    def rclick(self, event):
+    def rclick(self, event) -> None:
         """
         right click
-        :param event:
-        :return: None
+        :param event: right click event
         """
         if self.trv.identify('region', event.x, event.y) == 'heading':
+            # Get column number
             column = int(self.trv.identify_column(event.x)[1:]) - 1
+            # Create filter window
             filter_window = Toplevel()
             filter_window.title(string='Filtration')
             f_label = Label(filter_window, text=self.columns[column])
             f_label.pack()
+            # Create description for indices
             if column > 8:
                 description = Label(filter_window, text=storage.info[self.columns[column]], justify=LEFT)
                 description.pack()
+            # Create from-to block for columns with date or float numbers
             if column > 8 or column == 1 or column == 3:
                 from_to_frame = Frame(filter_window)
                 from_to_frame.pack()
@@ -167,30 +180,43 @@ class Table(LabelFrame):
                 ftf = partial(self.from_to_filtration, self.columns[column], from_e, to_e)
                 from_to_filter = Button(from_to_frame, text='Filter', command=ftf)
                 from_to_filter.grid(row=6, column=0)
+            # Create Listbox
             lb_frame = Frame(filter_window)
             lb_frame.pack()
             lb = Listbox(lb_frame, selectmode=MULTIPLE)
             lb.grid(row=0, column=0)
+            # Set is used to exclude repeated data, converted to the sorted list
             lb_set = set()
             for child in self.trv.get_children():
                 lb_set.add(self.trv.item(child)['values'][column])
             lb_set = sorted(list(lb_set))
+            # Insert it into Listbox
             for i in range(len(lb_set)):
                 lb.insert(END, lb_set[i])
             f = partial(self.filtration, self.columns[column], lb)
+            # Filter button
             filter_button = Button(lb_frame, text='Filter', command=f)
             filter_button.grid(row=8, column=0)
+            # Clear button
             clear_button = Button(lb_frame, text='Clear all', command=self.clear_filter)
             clear_button.grid(row=9, column=0)
 
-    def plot(self):
+    def plot(self) -> None:
+        """
+        Plot selected samples
+        """
+        # Get selected
         selected = self.trv.selection()
+        # Lists for data
         sel_samp = []
         sel_fract = []
         sel_weight = []
+
         for i in selected:
             sample = self.trv.item(i)['values'][4]
+            # Append sample to sel_samp
             sel_samp.append(sample)
+            # Get values from database
             res = read_query(f'''
             SELECT fraction, weight
             FROM fractions
@@ -198,14 +224,18 @@ class Table(LabelFrame):
             ''')
             fr = []
             w = []
+            # Create the lists of fractions and weights for one sample
             for j in res:
                 fr.append(j[0])
                 w.append(j[1])
+            # Append fractions and weights tuples to their lists
             sel_fract.append(tuple(fr))
             sel_weight.append(tuple(w))
+        # Create the plot window
         plot_window = Toplevel()
         plot_window.title(f'Compare Plots {sel_samp}')
         plot_window.state('zoomed')
+        # Draw cumulative curves
         plot = Curve(plot_window)
         plot.pack()
         plot.upd(sel_fract, sel_weight, sel_samp)
@@ -213,7 +243,7 @@ class Table(LabelFrame):
 
 class Curve(Frame):
     """
-    Plot of sand cumulative curve
+    Plot of cumulative curve
     """
     def __init__(self, root):
         super().__init__(root)
@@ -233,7 +263,14 @@ class Curve(Frame):
         self.renderer = self.curve_canvas.renderer
         self.axes.draw(renderer=self.renderer)
 
-    def upd(self, fractions, weights, labels):
+    def upd(self, fractions: list, weights: list, labels: list) -> None:
+        """
+        Update plot
+
+        :param fractions: list of iterables with float numbers
+        :param weights: list of iterables with float numbers
+        :param labels: List of plot labels
+        """
         self.axes.cla()
         for i in range(len(fractions)):
             self.axes.plot(fractions[i], weights[i], label=labels[i])

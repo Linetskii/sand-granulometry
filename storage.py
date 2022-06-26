@@ -12,7 +12,7 @@ class IndicesData:
     KG: float
     SD: float
 
-    def get(self):
+    def get(self) -> tuple:
         return astuple(self)
 
 
@@ -30,28 +30,46 @@ class SampleData:
 
 @dataclass
 class CFG:
+    """
+    Config dataclass.
+    """
     sep: str = ' '
     rnd_ind: int = '1'
     rnd_frac: int = '2'
     def_fract: str = 'standard'
 
-    def update(self):
+    def update(self) -> None:
+        """
+        Update from config.txt
+        """
         with open('config.txt', 'r') as config:
             self.sep = config.readline().split(' = ')[1][1:-2]
             self.rnd_ind = int(config.readline().split(' = ')[1])
             self.rnd_frac = int(config.readline().split(' = ')[1])
             self.def_fract = config.readline().split(' = ')[1]
 
-    def apply_settings(self):
+    def apply_settings(self) -> None:
+        """
+        Write settings to config.txt
+        """
         with open('config.txt', 'w') as config:
             config.write(f"sep = \'{self.sep}\'\nrnd_ind = {self.rnd_ind}\n"
                          f"rnd_frac = {self.rnd_frac}\ndef_fract = {self.def_fract}")
 
+
+@dataclass
+class UPD:
+    persons: tuple
+    locations: tuple
+    zones: tuple
+
+
+# Table headers
 headers = ('Collector', 'Sampling_date', 'Performer', 'Analysis_date', 'Sample', 'Location', 'Zone',
            'Latitude', 'Longitude', 'Mdφ', 'Mz', 'QDφ', 'σ_1', 'Skqφ', 'Sk_1', 'KG', 'SD')
-
+# Sand size classification
 sand = '\n0 to -1     Very coarse\n1 to 0      Coarse\n2 to 1      Medium\n3 to 2      Fine\n4 to 3      Very fine\n'
-
+# Indices info
 info = {'Mdφ': 'Median particle diameter\nMdφ = φ50' + sand,
         'Mz': 'Graphic mean particle diameter (Mz)\nMz = (φ16 + φ50 + φ84) / 3' + sand,
         'QDφ': 'Phi quartile deviation\nQDφ = (φ75 - φ25) / 2\n',
