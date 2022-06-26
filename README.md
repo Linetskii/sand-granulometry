@@ -1,15 +1,17 @@
 #sand-granulometry
 Fast and simple application for routine analysis of sand samples
 ##Reqirements
-* Python 3.10 or above
+* Python 3.9 or above
 ##Setup
 To setup, create and activate a new python venv and run `pip install -r- reqirements.txt`
 Then run main.py using `py main.py`
 ##How to use
 
+
 ###Add sample tab
 You can use Tab button to switch to the next input field
 The date should be in yyyy.mm.dd format
+You can import data from Excel workbook
 
 ###Compare samples tab
 * Left click on header - sort by chosen column, in ascending or descending order.
@@ -19,7 +21,8 @@ The date should be in yyyy.mm.dd format
     * From-to - write minimal and maximal values and press "Filter".
 * Left click on row - select one row.
 * Ctrl + Left click on row - select multiple rows.
-* "Plot" button - draw Cumulative curves.
+* "Plot selected samples" button - draw Cumulative curves.
+* "Export table as xlsx" button - export filtered table as xlsx 
 
 ###Settings
 * General settings - rounding and default fractions

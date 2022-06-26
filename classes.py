@@ -1,9 +1,13 @@
+import tkinter.filedialog
 from tkinter import *
 from tkinter.ttk import Treeview
 from functools import partial
 from matplotlib.figure import Figure
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2Tk
 from re import fullmatch
+import openpyxl
+
+
 import storage
 from db import read_query, get_id
 
@@ -72,9 +76,14 @@ class Table(LabelFrame):
         # Bind events: right click and left click
         self.trv.bind('<Button-1>', self.click)
         self.trv.bind('<Button-3>', self.rclick)
+        # Clear button
+        clear_button = Button(self, text='Clear all', command=self.clear_filter)
+        clear_button.pack(side=LEFT)
         # "Plot" Button
-        self.btn = Button(self, text='Plot selected samples', command=self.plot)
-        self.btn.pack()
+        self.plt_btn = Button(self, text='Plot selected samples', command=self.plot)
+        self.plt_btn.pack(side=LEFT)
+        self.export_btn = Button(self, text='Export table as xlsx', command=self.export)
+        self.export_btn.pack(side=LEFT)
         # Variables with current sorting and filter parameters
         self.order = 0
         self.order_by = columns[0]
@@ -246,6 +255,15 @@ class Table(LabelFrame):
         plot = Curve(plot_window)
         plot.pack()
         plot.upd(sel_fract, sel_weight, sel_samp)
+
+    def export(self):
+        wb = openpyxl.Workbook()
+        ws = wb.active
+        ws.title = "Sand database"
+        ws.append(storage.headers)
+        for i in self.trv.get_children():
+            ws.append(self.trv.item(i)['values'])
+        wb.save(filename=tkinter.filedialog.asksaveasfilename())
 
 
 class Curve(Frame):
