@@ -1,6 +1,7 @@
 from tkinter import *
 from tkinter import ttk
 from tkinter import filedialog
+from tkinter import messagebox
 
 import numpy
 from numpy import array, cumsum, interp, log2, around
@@ -272,6 +273,13 @@ class Sample(ttk.Frame):
             # Read each column in row, write to row
             for col in worksheet.iter_cols(1, worksheet.max_column):
                 row.append(col[i].value)
+            if self.validate_sample(row[2]) is False:
+                if messagebox.askyesno(title='Conflict',
+                                       message=f'Sample{row[2]} already exists in database. Do you want to rename it'
+                                               f' to {row[2]}-{worksheet.title}?'):
+                    row[2] = f'{row[2]}-{worksheet.title}'
+                else:
+                    continue
             # Write weights
             weights = array(row[8:worksheet.max_column], dtype=float)
             # Write sample information to SampleData dataclass

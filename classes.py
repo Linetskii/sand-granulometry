@@ -63,7 +63,7 @@ class Table(LabelFrame):
         self.scrollbar = Scrollbar(self)
         self.scrollbar.pack(side=RIGHT, fill=Y)
         # Create the table
-        self.trv = Treeview(self, height=int(scr_height/30))
+        self.trv = Treeview(self, height=int(scr_height/25))
         self.trv['columns'] = self.columns
         self.trv.column('#0', width=0)
         for i in self.columns:
@@ -73,7 +73,7 @@ class Table(LabelFrame):
         self.trv.bind('<Button-1>', self.click)
         self.trv.bind('<Button-3>', self.rclick)
         # "Plot" Button
-        self.btn = Button(self, text='Plot', command=self.plot)
+        self.btn = Button(self, text='Plot selected samples', command=self.plot)
         self.btn.pack()
         # Variables with current sorting and filter parameters
         self.order = 0
