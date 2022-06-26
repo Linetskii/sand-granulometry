@@ -77,7 +77,7 @@ class Table(LabelFrame):
         self.trv.bind('<Button-1>', self.click)
         self.trv.bind('<Button-3>', self.rclick)
         # Clear button
-        clear_button = Button(self, text='Clear all', command=self.clear_filter)
+        clear_button = Button(self, text='Clear all filters', command=self.clear_filter)
         clear_button.pack(side=LEFT)
         # "Plot" Button
         self.plt_btn = Button(self, text='Plot selected samples', command=self.plot)
@@ -262,7 +262,13 @@ class Table(LabelFrame):
         ws.title = "Sand database"
         ws.append(storage.headers)
         for i in self.trv.get_children():
-            ws.append(self.trv.item(i)['values'])
+            col = read_query(
+                f'''SELECT weight, fraction
+                FROM fractions
+                    INNER JOIN samples USING(sample_id)
+                WHERE sample = "{self.trv.item(i)['values'][4]}"'''
+            )
+            ws.append(self.trv.item(i)['values'] + ['weights:'] + [i[0] for i in col] + ['fractions:'] + [i[1] for i in col])
         wb.save(filename=tkinter.filedialog.asksaveasfilename())
 
 
