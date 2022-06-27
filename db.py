@@ -6,6 +6,7 @@ from datetime import date
 def create_connection(pth: str):
     """
     Create the connection with SQL database
+
     :param pth: name of database file
     :return: connection with database
     """
@@ -21,6 +22,7 @@ def create_connection(pth: str):
 def execute_query(query: str) -> None:
     """
     Execute query
+
     :param query: SQL query
     """
     cursor = connection.cursor()
@@ -35,6 +37,7 @@ def execute_query(query: str) -> None:
 def read_query(query: str) -> list:
     """
     Execute SELECT query, returns selected
+
     :param query: SQL query
     :return: result of SELECT query
     """
@@ -48,10 +51,7 @@ def read_query(query: str) -> list:
 
 
 def create_db() -> None:
-    """
-    create locations, zones, persons, samples and fractions tables
-    :return:
-    """
+    """create locations, zones, persons, samples and fractions tables"""
     # location table query
     create_locations_table = '''
     CREATE TABLE IF NOT EXISTS locations (
@@ -150,16 +150,6 @@ def update(column: str, table: str = None) -> tuple:
         return tuple(map(lambda x: x[0], read_query(f'''SELECT {column} FROM {table}''')))
 
 
-def update_pzl(event=None) -> None:
-    """
-    Update persons, zones and locations
-    """
-    update('sample')
-    update('person')
-    update('zone')
-    update('location')
-
-
 def add(fract, c_weights, indices, info) -> None:
     """
     Add sample into database
@@ -217,10 +207,9 @@ def add(fract, c_weights, indices, info) -> None:
         VALUES ("{get_id('sample', info.sample)}", "{fract[i]}", "{c_weights[i]}")
         '''
         execute_query(new_fractions)
-    update_pzl()
 
 
-# create connection with SQL database.
+# Create connection with SQL database.
 connection = create_connection('GCDB.sqlite3')
 # Part of query, that connect all tables
 db_from = '''
@@ -238,10 +227,3 @@ locations
     INNER JOIN (SELECT person_id as pid, person as collector_name FROM persons) ON pid = samples.collector
     INNER JOIN (SELECT person_id as p, person as performer_name FROM persons) ON p = samples.performer
 '''
-# Dictionary for comboboxes
-upd_dict = {
-    'locations': (),
-    'samples': (),
-    'zones': (),
-    'persons': (),
-}

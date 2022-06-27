@@ -1,8 +1,10 @@
 Fast and simple application for routine analysis of sand samples
 
 This app allows you:
+    -Import data from Excel files
     -Calculate main sand indices
     -Check the granulometric curves
-    -Store all sample information in a single database
+    -Store all samples in a single database
     -Work with database
+    -Export your data
 

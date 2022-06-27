@@ -1,21 +1,18 @@
-import tkinter.filedialog
-from tkinter import *
+import tkinter as tk
 from tkinter.ttk import Treeview
+import tkinter.filedialog
 from functools import partial
 from matplotlib.figure import Figure
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2Tk
 from re import fullmatch
 import openpyxl
 
-
 import storage
 from db import read_query, get_id
 
 
-class MultipleEntry(Frame):
-    """
-    Grid of Entry widgets. 1st row - disabled headers.
-    """
+class MultipleEntry(tk.Frame):
+    """Grid of Entry widgets. 1st row - disabled headers."""
     def __init__(self, root, hdrs):
         super().__init__(root)
         self.headers = []
@@ -24,27 +21,28 @@ class MultipleEntry(Frame):
         self.upd(hdrs)
 
     def get(self) -> list:
-        """
-        :return: list of data from 2nd row
-        """
+        """:return: list of data from 2nd row"""
         get_all = []
         for i in self.entry:
             get_all.append(i.get())
         return get_all
 
     def upd(self, hdrs) -> None:
-        """
-        Change the size and headers
-        """
+        """Change the size and headers"""
         for i in range(len(hdrs)):
-            self.headers.append(Entry(self, width=5))
-            self.headers[i].insert(END, hdrs[i])
-            self.headers[i].config(state=DISABLED)
+            self.headers.append(tk.Entry(self, width=5))
+            self.headers[i].insert(tk.END, hdrs[i])
+            self.headers[i].config(state=tk.DISABLED)
             self.headers[i].grid(row=0, column=i)
-            self.entry.append(Entry(self, width=5, validate='focusout', validatecommand=self.vcmd))
+            self.entry.append(tk.Entry(self, width=5, validate='focusout', validatecommand=self.vcmd))
             self.entry[i].grid(row=1, column=i)
 
     def validate(self, value: str, widget: str) -> bool:
+        """
+        Validation of fractions.
+
+        :return: True if the decimal is in the entry, else false. Turn font color to red if not decimal, else black.
+        """
         if fullmatch(r'\d+(\.\d*)?', value):
             self.nametowidget(widget).config(fg='black')
             return True
@@ -53,10 +51,10 @@ class MultipleEntry(Frame):
             return False
 
 
-class Table(LabelFrame):
+class Table(tk.LabelFrame):
     """
-    Create the table with sorting (LMB on heading), filter (RMB on heading)
-    and plotting of selected samples ("Plot" button)
+    Create the table with sorting (LMB on heading), filter (RMB on heading),
+    plotting of selected samples ("Plot" button) and export ("Export" button)
     """
     def __init__(self, root, scr_width, scr_height, columns, name: str, tables):
         super().__init__(root, text=name)
@@ -64,8 +62,8 @@ class Table(LabelFrame):
         # Create the LabelFrame with the table label
         self.pack(fill='both', expand=1)
         # Create scrollbar for table
-        self.scrollbar = Scrollbar(self)
-        self.scrollbar.pack(side=RIGHT, fill=Y)
+        self.scrollbar = tk.Scrollbar(self)
+        self.scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
         # Create the table
         self.trv = Treeview(self, height=int(scr_height/25))
         self.trv['columns'] = self.columns
@@ -77,13 +75,13 @@ class Table(LabelFrame):
         self.trv.bind('<Button-1>', self.click)
         self.trv.bind('<Button-3>', self.rclick)
         # Clear button
-        clear_button = Button(self, text='Clear all filters', command=self.clear_filter)
-        clear_button.pack(side=LEFT)
+        clear_button = tk.Button(self, text='Clear all filters', command=self.clear_filter)
+        clear_button.pack(side=tk.LEFT)
         # "Plot" Button
-        self.plt_btn = Button(self, text='Plot selected samples', command=self.plot)
-        self.plt_btn.pack(side=LEFT)
-        self.export_btn = Button(self, text='Export table as xlsx', command=self.export)
-        self.export_btn.pack(side=LEFT)
+        self.plt_btn = tk.Button(self, text='Plot selected samples', command=self.plot)
+        self.plt_btn.pack(side=tk.LEFT)
+        self.export_btn = tk.Button(self, text='Export table as xlsx', command=self.export)
+        self.export_btn.pack(side=tk.LEFT)
         # Variables with current sorting and filter parameters
         self.order = 0
         self.order_by = columns[0]
@@ -94,13 +92,11 @@ class Table(LabelFrame):
             self.trv.heading(i, text=columns[i])
         # Configure scrollbar
         self.scrollbar.config(command=self.trv.yview)
-        # update table after creation
+        # Update table after creation
         self.update()
 
     def update(self) -> None:
-        """
-        Update the table from database, using filters and sorting parameters
-        """
+        """Update the table from database, using filters and sorting parameters"""
         columns = ('Collector_name', 'Sampling_date', 'Performer_name', 'Analysis_date', 'Sample', 'Location', 'Zone',
                    'Latitude', 'Longitude', 'Mdφ', 'Mz', 'QDφ', 'σ_1', 'Skqφ', 'Sk_1', 'KG', 'SD')
         if self.filters != set(''):
@@ -137,9 +133,10 @@ class Table(LabelFrame):
             column_number = int(self.trv.identify_column(event.x)[1:]) - 1
             self.sorting(column_number)
 
-    def from_to_filtration(self, column: str, from_e: Entry, to_e: Entry) -> None:
+    def from_to_filtration(self, column: str, from_e: tk.Entry, to_e: tk.Entry) -> None:
         """
-        filter all values between 'from' and 'to' values
+        Leave values between 'from' and 'to'
+
         :param column: column name
         :param from_e: From Entry
         :param to_e: to Entry
@@ -147,9 +144,9 @@ class Table(LabelFrame):
         self.filters.add(f'{column} BETWEEN {from_e.get()} AND {to_e.get()}')
         self.update()
 
-    def filtration(self, column: str, lb: Listbox) -> None:
+    def filtration(self, column: str, lb: tk.Listbox) -> None:
         """
-        filter the table
+        Filter the table
 
         :param column: column
         :param lb: listbox with values
@@ -160,48 +157,47 @@ class Table(LabelFrame):
         self.update()
 
     def clear_filter(self) -> None:
-        """
-        Clear all filters
-        """
+        """Clear all filters"""
         self.filters = set('')
         self.update()
 
     def rclick(self, event) -> None:
         """
-        right click
+        Right click
+
         :param event: right click event
         """
         if self.trv.identify('region', event.x, event.y) == 'heading':
             # Get column number
             column = int(self.trv.identify_column(event.x)[1:]) - 1
             # Create filter window
-            filter_window = Toplevel()
+            filter_window = tk.Toplevel()
             filter_window.title(string='Filtration')
-            f_label = Label(filter_window, text=self.columns[column])
+            f_label = tk.Label(filter_window, text=self.columns[column])
             f_label.pack()
             # Create description for indices
             if column > 8:
-                description = Label(filter_window, text=storage.info[self.columns[column]], justify=LEFT)
+                description = tk.Label(filter_window, text=storage.info[self.columns[column]], justify=tk.LEFT)
                 description.pack()
             # Create from-to block for columns with date or float numbers
             if column > 8 or column == 1 or column == 3:
-                from_to_frame = Frame(filter_window)
+                from_to_frame = tk.Frame(filter_window)
                 from_to_frame.pack()
-                from_l = Label(from_to_frame, text='From:')
+                from_l = tk.Label(from_to_frame, text='From:')
                 from_l.grid(row=0, column=0)
-                from_e = Entry(from_to_frame)
+                from_e = tk.Entry(from_to_frame)
                 from_e.grid(row=1, column=0)
-                to_l = Label(from_to_frame, text='To:')
+                to_l = tk.Label(from_to_frame, text='To:')
                 to_l.grid(row=2, column=0)
-                to_e = Entry(from_to_frame)
+                to_e = tk.Entry(from_to_frame)
                 to_e.grid(row=3, column=0)
                 ftf = partial(self.from_to_filtration, self.columns[column], from_e, to_e)
-                from_to_filter = Button(from_to_frame, text='Filter', command=ftf)
+                from_to_filter = tk.Button(from_to_frame, text='Filter', command=ftf)
                 from_to_filter.grid(row=6, column=0)
             # Create Listbox
-            lb_frame = Frame(filter_window)
+            lb_frame = tk.Frame(filter_window)
             lb_frame.pack()
-            lb = Listbox(lb_frame, selectmode=MULTIPLE)
+            lb = tk.Listbox(lb_frame, selectmode=tk.MULTIPLE)
             lb.grid(row=0, column=0)
             # Set is used to exclude repeated data, converted to the sorted list
             lb_set = set()
@@ -210,26 +206,23 @@ class Table(LabelFrame):
             lb_set = sorted(list(lb_set))
             # Insert it into Listbox
             for i in range(len(lb_set)):
-                lb.insert(END, lb_set[i])
+                lb.insert(tk.END, lb_set[i])
             f = partial(self.filtration, self.columns[column], lb)
             # Filter button
-            filter_button = Button(lb_frame, text='Filter', command=f)
+            filter_button = tk.Button(lb_frame, text='Filter', command=f)
             filter_button.grid(row=8, column=0)
             # Clear button
-            clear_button = Button(lb_frame, text='Clear all', command=self.clear_filter)
+            clear_button = tk.Button(lb_frame, text='Clear all', command=self.clear_filter)
             clear_button.grid(row=9, column=0)
 
     def plot(self) -> None:
-        """
-        Plot selected samples
-        """
+        """Plot selected samples"""
         # Get selected
         selected = self.trv.selection()
         # Lists for data
         sel_samp = []
         sel_fract = []
         sel_weight = []
-
         for i in selected:
             sample = self.trv.item(i)['values'][4]
             # Append sample to sel_samp
@@ -250,7 +243,7 @@ class Table(LabelFrame):
             sel_fract.append(tuple(fr))
             sel_weight.append(tuple(w))
         # Create the plot window
-        plot_window = Toplevel()
+        plot_window = tk.Toplevel()
         plot_window.title(f'Compare Plots {sel_samp}')
         plot_window.state('zoomed')
         # Draw cumulative curves
@@ -259,26 +252,29 @@ class Table(LabelFrame):
         plot.upd(sel_fract, sel_weight, sel_samp)
 
     def export(self):
+        """Export as Excel .xlsx file"""
+        # Create workbook and worksheet
         wb = openpyxl.Workbook()
         ws = wb.active
         ws.title = "Sand database"
-        ws.append(storage.headers)
+        ws.append(storage.headers)  # Append headers
+        # For each row...
         for i in self.trv.get_children():
+            # Read weights and fractions
             col = read_query(
                 f'''SELECT weight, fraction
                 FROM fractions
                     INNER JOIN samples USING(sample_id)
                 WHERE sample = "{self.trv.item(i)['values'][4]}"'''
             )
+            # Append row in for: table row + weights + fractions
             ws.append(self.trv.item(i)['values'] + ['weights:'] + [i[0] for i in col] +
                       ['fractions:'] + [i[1] for i in col])
-        wb.save(filename=tkinter.filedialog.asksaveasfilename())
+        wb.save(filename=tk.filedialog.asksaveasfilename())  # Save excel book
 
 
-class Curve(Frame):
-    """
-    Plot of cumulative curve
-    """
+class Curve(tk.Frame):
+    """Plot of cumulative curve"""
     def __init__(self, root):
         super().__init__(root)
         # Create the frame for the plot
@@ -291,7 +287,7 @@ class Curve(Frame):
         self.axes.set_title('Cumulative curve')
         self.axes.set_xlabel('Particle diameter, φ')
         self.axes.set_ylabel('Cumulative weight %')
-        self.curve_canvas.get_tk_widget().pack(side=TOP, fill=BOTH, expand=1)
+        self.curve_canvas.get_tk_widget().pack(side=tk.TOP, fill=tk.BOTH, expand=1)
         # Render the plot
         self.curve_canvas.draw()
         self.renderer = self.curve_canvas.renderer
