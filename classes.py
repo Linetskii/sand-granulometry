@@ -101,11 +101,13 @@ class Table(LabelFrame):
         """
         Update the table from database, using filters and sorting parameters
         """
+        columns = ('Collector_name', 'Sampling_date', 'Performer_name', 'Analysis_date', 'Sample', 'Location', 'Zone',
+                   'Latitude', 'Longitude', 'Mdφ', 'Mz', 'QDφ', 'σ_1', 'Skqφ', 'Sk_1', 'KG', 'SD')
         if self.filters != set(''):
             f = f'\nWHERE {" OR ".join(self.filters)}'
         else:
             f = ''
-        query = f'SELECT {", ".join(self.columns)}\nFROM {self.tables}{f}\n' \
+        query = f'SELECT {", ".join(columns)}\nFROM {self.tables}{f}\n' \
                 f'ORDER BY {self.order_by} {"ASC" if self.order == 0 else "DESC"}'
         rows = read_query(query)
         self.trv.delete(*self.trv.get_children())
@@ -268,7 +270,8 @@ class Table(LabelFrame):
                     INNER JOIN samples USING(sample_id)
                 WHERE sample = "{self.trv.item(i)['values'][4]}"'''
             )
-            ws.append(self.trv.item(i)['values'] + ['weights:'] + [i[0] for i in col] + ['fractions:'] + [i[1] for i in col])
+            ws.append(self.trv.item(i)['values'] + ['weights:'] + [i[0] for i in col] +
+                      ['fractions:'] + [i[1] for i in col])
         wb.save(filename=tkinter.filedialog.asksaveasfilename())
 
 

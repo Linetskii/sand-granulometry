@@ -175,7 +175,7 @@ def add(fract, c_weights, indices, info) -> None:
     VALUES ("{info.location}")
     '''
     execute_query(new_location)
-    # Add zone to zones table
+    # Add zone to 'zones' table
     new_zone = f'''
     INSERT INTO zones (zone)
     VALUES ("{info.zone}")

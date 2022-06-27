@@ -291,7 +291,7 @@ class Sample(ttk.Frame):
 
 class CompareSamples(ttk.Frame):
     """
-    Compare Samoles tab
+    Compare Samples tab
     """
     def __init__(self, container):
         super().__init__(container)
@@ -376,7 +376,7 @@ class Settings(ttk.Frame):
         self.fract_sch = Entry(self.fract_lf, width=49)
         self.fract_sch.grid(row=1, column=1)
         # Add button
-        self.fract_add_button = Button(self.fract_lf, text='Add', command=self.add_fractoins)
+        self.fract_add_button = Button(self.fract_lf, text='Add', command=self.add_fractions)
         self.fract_add_button.grid(row=2, column=0)
 
     def convert(self) -> None:
@@ -419,7 +419,7 @@ class Settings(ttk.Frame):
         """
         self.fract_cb['values'] = list(i for i in upd_fract().keys())
 
-    def add_fractoins(self) -> None:
+    def add_fractions(self) -> None:
         """
         Add fractions to the fractions.txt, update dictionary
         """
