@@ -9,7 +9,7 @@ Fast and simple to use application for routine analysis of sand samples
 To setup, create and activate a new python venv and run `pip install -r- reqirements.txt`
 Then run main.py using `py main.py`
 
-## #How to import my data?
+### How to import my data?
 ![Import](Example/Import.png)
 To import your data you should insert in into an Excel workbook. You can just replace rows in Example database.
 * First row is for headers. 
