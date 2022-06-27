@@ -50,3 +50,12 @@ Cumulative weights and fractions will be also exported.
 * Converter - convert sand diameter
 * Add fractions scheme - save mesh size diameter (in φ units) of your sieves 
 * in descending order.
+
+## φ units
+* This program uses the φ units: -log2(D, mm).
+* The smaller is φ, the higher is diameter.
+* Don't be afraid of negative φ values.
+
+## References
+* Brown, A. C., & McLachlan, A. (2010). The ecology of sandy shores. Elsevier
+* Folk, R. L. (1974). Petrology of sedimentary rocks: Austin, Texas
