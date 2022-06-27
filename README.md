@@ -10,7 +10,7 @@ To setup, create and activate a new python venv and run `pip install -r- reqirem
 Then run main.py using `py main.py`
 
 ###How to import my data?
-![Import](Import.png)
+![Import](Example/Import.png)
 To import your data you should insert in into an Excel workbook. You can just replace rows in Example database.
 * First row is for headers. 
 * Columns A-H is sample info. Please, don't break the order.
@@ -22,7 +22,7 @@ You can use any weight units or percents.
 
 ##Interface
 ###Add sample tab
-![Add sample tab](sg%20add.png)
+![Add sample tab](Example/sg%20add.png)
 * Easy way to add new sample to the database during analysis
 * Press "Tab" to switch to the next input field
 * Press "Check" button to preview the result of computations
@@ -30,7 +30,7 @@ You can use any weight units or percents.
 * You can import data from an Excel workbook
 
 ###Compare samples tab
-![Compare samples tab](sg%20compare.png)
+![Compare samples tab](Example/sg%20compare.png)
 * A tab for a simple comparison of samples
 * Left click on the header - sort by chosen column, in ascending or descending order.
 * Right click on the header - open filter window.
@@ -40,7 +40,7 @@ Press "Clear all" to clear all filters
     * From-to - write minimal and maximal values and press "Filter".
 * Left click on the row - select one row.
 * Ctrl + Left click on the row - select multiple rows.
-![Plot](plot.png)
+![Plot](Example/plot.png)
 * "Plot selected samples" button - draw Cumulative curves.
 * "Export table as xlsx" button - export filtered table as xlsx.
 Cumulative weights and fractions will be also exported.
