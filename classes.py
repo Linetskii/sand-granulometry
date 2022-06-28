@@ -1,12 +1,14 @@
 import tkinter as tk
 from tkinter.ttk import Treeview
 import tkinter.filedialog
+import tkinter.messagebox
 from functools import partial
 from matplotlib.figure import Figure
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2Tk
 from re import fullmatch
 import openpyxl
 
+import db
 import storage
 from db import read_query, get_id
 
@@ -80,8 +82,12 @@ class Table(tk.LabelFrame):
         # "Plot" Button
         self.plt_btn = tk.Button(self, text='Plot selected samples', command=self.plot)
         self.plt_btn.pack(side=tk.LEFT)
+        # "Export" button
         self.export_btn = tk.Button(self, text='Export table as xlsx', command=self.export)
         self.export_btn.pack(side=tk.LEFT)
+        # "Delete" button
+        self.delete_btn = tk.Button(self, text='Delete selected', command=self.delete_sel)
+        self.delete_btn.pack(side=tk.LEFT)
         # Variables with current sorting and filter parameters
         self.order = 0
         self.order_by = columns[0]
@@ -141,7 +147,7 @@ class Table(tk.LabelFrame):
         :param from_e: From Entry
         :param to_e: to Entry
         """
-        self.filters.add(f'{column} BETWEEN {from_e.get()} AND {to_e.get()}')
+        self.filters.add(f'{column} BETWEEN "{from_e.get()}" AND "{to_e.get()}"')
         self.update()
 
     def filtration(self, column: str, lb: tk.Listbox) -> None:
@@ -185,11 +191,11 @@ class Table(tk.LabelFrame):
                 from_to_frame.pack()
                 from_l = tk.Label(from_to_frame, text='From:')
                 from_l.grid(row=0, column=0)
-                from_e = tk.Entry(from_to_frame)
+                from_e = tk.Entry(from_to_frame, width=32)
                 from_e.grid(row=1, column=0)
                 to_l = tk.Label(from_to_frame, text='To:')
                 to_l.grid(row=2, column=0)
-                to_e = tk.Entry(from_to_frame)
+                to_e = tk.Entry(from_to_frame, width=32)
                 to_e.grid(row=3, column=0)
                 ftf = partial(self.from_to_filtration, self.columns[column], from_e, to_e)
                 from_to_filter = tk.Button(from_to_frame, text='Filter', command=ftf)
@@ -197,7 +203,7 @@ class Table(tk.LabelFrame):
             # Create Listbox
             lb_frame = tk.Frame(filter_window)
             lb_frame.pack()
-            lb = tk.Listbox(lb_frame, selectmode=tk.MULTIPLE)
+            lb = tk.Listbox(lb_frame, selectmode=tk.MULTIPLE, width=32)
             lb.grid(row=0, column=0)
             # Set is used to exclude repeated data, converted to the sorted list
             lb_set = set()
@@ -271,6 +277,16 @@ class Table(tk.LabelFrame):
             ws.append(self.trv.item(i)['values'] + ['weights:'] + [i[0] for i in col] +
                       ['fractions:'] + [i[1] for i in col])
         wb.save(filename=tk.filedialog.asksaveasfilename())  # Save excel book
+
+    def delete_sel(self):
+        selected = self.trv.selection()
+        samples = []
+        for i in selected:
+            samples.append(self.trv.item(i)['values'][4])
+        if tk.messagebox.askokcancel(title='Delete',
+                                     message=f'Please confirm deletion of samples:\n{", ".join(samples)}'):
+            db.delete_selected(samples)
+            self.update()
 
 
 class Curve(tk.Frame):

@@ -187,7 +187,7 @@ def add(fract, c_weights, indices, info) -> None:
         "{info.lon}",
         "{info.sampling_date}",
         "{get_id('person', info.collector)}",
-        "{date.today().strftime('%Y.%m.%d')}",
+        "{date.today().strftime('%Y-%m-%d')}",
         "{get_id('person', info.performer)}",
         "{indices.MdPhi}",
         "{indices.Mz}",
@@ -209,17 +209,23 @@ def add(fract, c_weights, indices, info) -> None:
         execute_query(new_fractions)
 
 
+def delete_selected(samples):
+    for i in samples:
+        query_fr = f"""
+        DELETE FROM fractions
+        WHERE sample_id = "{get_id('sample', i)}"
+        """
+        execute_query(query_fr)
+    query_s = f"""
+    DELETE FROM samples
+    WHERE sample = "{'" OR sample = "'.join(samples)}"
+    """
+    execute_query(query_s)
+
+
 # Create connection with SQL database.
 connection = create_connection('GCDB.sqlite3')
 # Part of query, that connect all tables
-db_from = '''
-locations
-    INNER JOIN samples USING (location_id)
-    INNER JOIN zones USING (zone_id)
-    INNER JOIN (SELECT person_id as pid, person as collector_name FROM persons) ON pid = samples.collector
-    INNER JOIN (SELECT person_id as p, person as performer_name FROM persons) ON p = samples.performer
-'''
-
 tables = '''
 locations
     INNER JOIN samples USING (location_id)

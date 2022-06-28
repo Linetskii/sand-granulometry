@@ -16,9 +16,13 @@ To import your data you should insert in into an Excel workbook. You can just re
 * Columns A-H is sample info. Please, don't break the order.
 * Columns from I to last is for weights of the fractions, 
 from highest to lowest diameter.
-Please, use φ units for fractions (mesh diameters) in headers.
-You can convert mm or μm to φ using the converter in the Settings tab.
-You can use any weight units or percents.
+
+Then, press "Import Excel file" button in "Add sample" tab.
+Choose the path and open the file.
+
+* Please, use φ units for fractions (mesh diameters) in headers.
+* You can convert mm or μm to φ using the converter in the Settings tab.
+* You can use any weight units or percents.
 
 ## Interface
 ### Add sample tab
@@ -30,7 +34,7 @@ You can use any weight units or percents.
 * You can import data from an Excel workbook
 
 ### Compare samples tab
-![Compare samples tab](Example/sg%20compare.png)
+![Compare samples tab](Example/sg%20compare_tab.png)
 * A tab for a simple comparison of samples
 * Left click on the header - sort by chosen column, in ascending or descending order.
 * Right click on the header - open filter window.
@@ -40,10 +44,12 @@ Press "Clear all" to clear all filters
     * From-to - write minimal and maximal values and press "Filter".
 * Left click on the row - select one row.
 * Ctrl + Left click on the row - select multiple rows.
+* Shift + Left click on the row - select range.
 ![Plot](Example/plot.png)
 * "Plot selected samples" button - draw Cumulative curves.
 * "Export table as xlsx" button - export filtered table as xlsx.
 Cumulative weights and fractions will be also exported.
+* "Delete selected" button - delete selected sample from database
 
 ### Settings
 * General settings - rounding and default fractions

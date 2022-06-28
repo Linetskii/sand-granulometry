@@ -84,7 +84,7 @@ class Sample(ttk.Frame):
         self.date_label.grid(row=7, column=0, sticky='w')
         d_vcmd = (self.register(self.vali_date), '%P')
         self.date_entry = tk.Entry(self.info_frame, width=40, validate='focusout', validatecommand=d_vcmd)
-        self.date_entry.insert(tk.END, 'yyyy.mm.dd')
+        self.date_entry.insert(tk.END, 'yyyy-mm-dd')
         self.date_entry.grid(row=7, column=1)
         # Fractions and weights: Label and table of entry widgets
         self.fractions_label = tk.Label(self.info_frame, text='Fractions and weights:')
@@ -211,10 +211,10 @@ class Sample(ttk.Frame):
         :param value: date_entry string
         :return: True if value is yyyy.mm.dd date, else False
         """
-        pattern = r'[1|2][0-9]{3}\.(0[1-9]|1[0-2])\.(0[1-9]|[1-2][0-9]|3[0-1])'
+        pattern = r'[1|2][0-9]{3}-(0[1-9]|1[0-2])-(0[1-9]|[1-2][0-9]|3[0-1])'
         if re.fullmatch(pattern, value) is None:
             self.date_entry.config(fg='red')
-            self.add_btn.config(state='disabled', text='Please use yyyy.mm.dd date format.')
+            self.add_btn.config(state='disabled', text='Please use yyyy-mm-dd date format.')
             return False
         else:
             self.date_entry.config(fg='black')
@@ -265,7 +265,7 @@ class Sample(ttk.Frame):
             # Write weights
             weights = np.array(row[8:worksheet.max_column], dtype=float)
             # Write sample information to SampleData dataclass
-            info = storage.SampleData(*row[0:7], row[7].strftime("%Y.%m.%d"))
+            info = storage.SampleData(*row[0:7], row[7].strftime("%Y-%m-%d"))
             # Calculate cumulative weights and indices
             cumulative_weights, indices = self.calculate_indices(fractions, weights)
             db.add(fractions, cumulative_weights, indices, info)
@@ -280,8 +280,10 @@ class CompareSamples(ttk.Frame):
                                         scr_height=self.winfo_screenheight(), name='CompareSamples', tables=db.tables)
         self.comp_table.pack()
         # Update Table, when focused
-        self.bind('<FocusIn>', self.comp_table.update())
+        self.bind('<Visibility>', self.upd)
 
+    def upd(self, event):
+        self.comp_table.update()
 
 class Settings(ttk.Frame):
     """

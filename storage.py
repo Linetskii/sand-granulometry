@@ -82,7 +82,7 @@ info = {'Mdφ': 'Median particle diameter\nMdφ = φ50' + sand,
         'σ_1': 'Inclusive graphic standard deviation\nσi= (φ84 - φ16) / 4 + (φ95 - φ5) / 6.6\n'
                '<0.5    Good sorting\n0.5-1   Moderate sorting\n1<      Poor sorting\n',
         'Skqφ': 'Phi quartile skewness\nSkqφ = (φ25 + φ75 - φ50) / 2\n',
-        'Sk_1': 'Inclusive graphic skewness\nSki = (φ16 + φ84 - 2φ50) / (2(φ84 - φ16)) + (φ5 + φ95 - 2φ5) / '
+        'Sk_1': 'Inclusive graphic skewness\nSki = (φ16 + φ84 - 2φ50) / (2(φ84 - φ16)) + \n(φ5 + φ95 - 2φ5) / '
                 '(2(φ95 - φ50))\n+0.1< fine skewed sand\n-0.1-+0.1 Near symmetry\n<-0.1 coarse skewed sand\n',
         'KG': 'Kurtosis\nKG = ((φ95 - φ5) / 2.44(φ75 - φ25)\n1.0< wide spread\n<1.0 little spread\n',
         'SD': 'Standard deviation\nSD = φ86\n'
