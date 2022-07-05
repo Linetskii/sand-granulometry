@@ -24,13 +24,13 @@ class App(tk.Tk):
         self.notebook = ttk.Notebook(self)
         self.notebook.pack(fill='both', expand=True)
         # Create tabs
-        self.Sample = Sample(self.notebook)
-        self.CompareSamples = CompareSamples(self.notebook)
-        self.Settings = Settings(self.notebook)
+        self.__Sample = Sample(self.notebook)
+        self.__CompareSamples = CompareSamples(self.notebook)
+        self.__Settings = Settings(self.notebook)
         # Add tabs to notebook
-        self.notebook.add(self.Sample, text='Add the sample')
-        self.notebook.add(self.CompareSamples, text='Compare samples')
-        self.notebook.add(self.Settings, text='Settings')
+        self.notebook.add(self.__Sample, text='Add the sample')
+        self.notebook.add(self.__CompareSamples, text='Compare samples')
+        self.notebook.add(self.__Settings, text='Settings')
 
 
 class Sample(ttk.Frame):
@@ -38,124 +38,125 @@ class Sample(ttk.Frame):
     def __init__(self, container):
         super().__init__(container)
         # Create left frame
-        self.left_frame = tk.Frame(self)
-        self.left_frame.pack(side=tk.LEFT, anchor='nw', fill='y')
+        self.__left_frame = tk.Frame(self)
+        self.__left_frame.pack(side=tk.LEFT, anchor='nw', fill='y')
         # Create input block
-        self.info_frame = tk.Frame(self.left_frame)
-        self.info_frame.pack(anchor='nw')
+        self.__info_frame = tk.Frame(self.__left_frame)
+        self.__info_frame.pack(anchor='nw')
         # Collector
-        self.collector_label = tk.Label(self.info_frame, text='Collector')
-        self.collector_label.grid(row=0, column=0, sticky='w')
-        self.collector_combobox = ttk.Combobox(self.info_frame, postcommand=self.upd_persons, width=37)
-        self.collector_combobox.grid(row=0, column=1)
+        self.__collector_label = tk.Label(self.__info_frame, text='Collector')
+        self.__collector_label.grid(row=0, column=0, sticky='w')
+        self.__collector_combobox = ttk.Combobox(self.__info_frame, postcommand=self.__upd_persons, width=37)
+        self.__collector_combobox.grid(row=0, column=1)
         # Performer
-        self.performer_label = tk.Label(self.info_frame, text='Performer')
-        self.performer_label.grid(row=1, column=0, sticky='w')
-        self.performer_combobox = ttk.Combobox(self.info_frame, postcommand=self.upd_persons, width=37)
-        self.performer_combobox.grid(row=1, column=1)
+        self.__performer_label = tk.Label(self.__info_frame, text='Performer')
+        self.__performer_label.grid(row=1, column=0, sticky='w')
+        self.__performer_combobox = ttk.Combobox(self.__info_frame, postcommand=self.__upd_persons, width=37)
+        self.__performer_combobox.grid(row=1, column=1)
         # Sample
-        self.sample_label = tk.Label(self.info_frame, text='Sample name')
-        self.sample_label.grid(row=2, column=0, sticky='w')
-        s_vcmd = (self.register(self.validate_sample), '%P')
-        self.sample_entry = tk.Entry(self.info_frame, validate='focusout', validatecommand=s_vcmd, width=40)
-        self.sample_entry.grid(row=2, column=1)
+        self.__sample_label = tk.Label(self.__info_frame, text='Sample name')
+        self.__sample_label.grid(row=2, column=0, sticky='w')
+        self.__s_vcmd = (self.register(self.__validate_sample), '%P')
+        self.__sample_entry = tk.Entry(self.__info_frame, validate='focusout', validatecommand=self.__s_vcmd, width=40)
+        self.__sample_entry.grid(row=2, column=1)
         # Location
-        self.location_label = tk.Label(self.info_frame, text='Location name')
-        self.location_label.grid(row=3, column=0, sticky='w')
-        self.location_combobox = ttk.Combobox(self.info_frame, postcommand=self.upd_locations, width=37)
-        self.location_combobox.grid(row=3, column=1)
+        self.__location_label = tk.Label(self.__info_frame, text='Location name')
+        self.__location_label.grid(row=3, column=0, sticky='w')
+        self.__location_combobox = ttk.Combobox(self.__info_frame, postcommand=self.__upd_locations, width=37)
+        self.__location_combobox.grid(row=3, column=1)
         # Zone
-        self.zone_label = tk.Label(self.info_frame, text='Zone')
-        self.zone_label.grid(row=4, column=0, sticky='w')
-        self.zone_combobox = ttk.Combobox(self.info_frame, postcommand=self.upd_zones, width=37)
-        self.zone_combobox.grid(row=4, column=1, )
+        self.__zone_label = tk.Label(self.__info_frame, text='Zone')
+        self.__zone_label.grid(row=4, column=0, sticky='w')
+        self.__zone_combobox = ttk.Combobox(self.__info_frame, postcommand=self.__upd_zones, width=37)
+        self.__zone_combobox.grid(row=4, column=1, )
         # Latitude
-        self.lat_label = tk.Label(self.info_frame, text='Latitude')
-        self.lat_label.grid(row=5, column=0, sticky='w')
-        self.lat_entry = tk.Entry(self.info_frame, width=40)
-        self.lat_entry.grid(row=5, column=1)
+        self.__lat_label = tk.Label(self.__info_frame, text='Latitude')
+        self.__lat_label.grid(row=5, column=0, sticky='w')
+        self.__lat_entry = tk.Entry(self.__info_frame, width=40)
+        self.__lat_entry.grid(row=5, column=1)
         # Longitude
-        self.lon_label = tk.Label(self.info_frame, text='Longitude')
-        self.lon_label.grid(row=6, column=0, sticky='w')
-        self.lon_entry = tk.Entry(self.info_frame, width=40)
-        self.lon_entry.grid(row=6, column=1)
+        self.__lon_label = tk.Label(self.__info_frame, text='Longitude')
+        self.__lon_label.grid(row=6, column=0, sticky='w')
+        self.__lon_entry = tk.Entry(self.__info_frame, width=40)
+        self.__lon_entry.grid(row=6, column=1)
         # Sampling date
-        self.date_label = tk.Label(self.info_frame, text='Sampling date')
-        self.date_label.grid(row=7, column=0, sticky='w')
-        d_vcmd = (self.register(self.vali_date), '%P')
-        self.date_entry = tk.Entry(self.info_frame, width=40, validate='focusout', validatecommand=d_vcmd)
-        self.date_entry.insert(tk.END, 'yyyy-mm-dd')
-        self.date_entry.grid(row=7, column=1)
+        self.__date_label = tk.Label(self.__info_frame, text='Sampling date')
+        self.__date_label.grid(row=7, column=0, sticky='w')
+        self.__d_vcmd = (self.register(self.__vali_date), '%P')
+        self.__date_entry = tk.Entry(self.__info_frame, width=40, validate='focusout', validatecommand=self.__d_vcmd)
+        self.__date_entry.insert(tk.END, 'yyyy-mm-dd')
+        self.__date_entry.grid(row=7, column=1)
         # Fractions and weights: Label and table of entry widgets
-        self.fractions_label = tk.Label(self.info_frame, text='Fractions and weights:')
-        self.fractions_label.grid(row=8, column=0, sticky='w')
-        self.weight_entry = classes.MultipleEntry(self.left_frame, upd_fract()[cfg.def_fract])
-        self.weight_entry.pack()
-        self.bind('<FocusIn>', self.upd_fw)
+        self.__fractions_label = tk.Label(self.__info_frame, text='Fractions and weights:')
+        self.__fractions_label.grid(row=8, column=0, sticky='w')
+        self.__weight_entry = classes.MultipleEntry(self.__left_frame, upd_fract()[cfg.def_fract])
+        self.__weight_entry.pack()
+        # Update entry table when tab is focuseed
+        self.bind('<FocusIn>', self.__upd_fw)
         # Frame for buttons
-        self.btn_frame = tk.Frame(self.left_frame)
-        self.btn_frame.pack()
+        self.__btn_frame = tk.Frame(self.__left_frame)
+        self.__btn_frame.pack()
         # "Check" button
-        self.upd_btn = tk.Button(self.btn_frame, text='Check', command=self.check_sample)
-        self.upd_btn.grid(row=0, column=0)
+        self.__upd_btn = tk.Button(self.__btn_frame, text='Check', command=self.__check_sample)
+        self.__upd_btn.grid(row=0, column=0)
         # "Add" button
-        self.add_btn = tk.Button(self.btn_frame, text='Add', command=self.add_btn_cmd)
-        self.add_btn.grid(row=0, column=1)
+        self.__add_btn = tk.Button(self.__btn_frame, text='Add', command=self.__add_btn_cmd)
+        self.__add_btn.grid(row=0, column=1)
         # Create indices table
-        self.indices_table = ttk.Treeview(self.left_frame, columns=tuple(range(8)), show='headings', height=1)
-        self.indices_table['columns'] = list(range(8))
+        self.__indices_table = ttk.Treeview(self.__left_frame, columns=tuple(range(8)), show='headings', height=1)
+        self.__indices_table['columns'] = list(range(8))
         for i in range(8):
-            self.indices_table.column(i, width=50)
-            self.indices_table.heading(i, text=storage.headers[9 + i])
-        self.indices_table.pack(pady=20)
+            self.__indices_table.column(i, width=50)
+            self.__indices_table.heading(i, text=storage.headers[9 + i])
+        self.__indices_table.pack(pady=20)
         # Create fractions table
-        self.fractions_table = ttk.Treeview(self.left_frame, columns=('0', '1'), show='headings', height=10)
-        self.fractions_table.pack(anchor='n')
-        self.fractions_table.heading('0', text='Fractions')
-        self.fractions_table.heading('1', text='Weights')
+        self.__fractions_table = ttk.Treeview(self.__left_frame, columns=('0', '1'), show='headings', height=10)
+        self.__fractions_table.pack(anchor='n')
+        self.__fractions_table.heading('0', text='Fractions')
+        self.__fractions_table.heading('1', text='Weights')
         # Create right frame
-        self.right_frame = tk.Frame(self)
-        self.right_frame.pack(anchor='nw')
+        self.__right_frame = tk.Frame(self)
+        self.__right_frame.pack(anchor='nw')
         # Create cumulative curve plot in right frame
-        self.curve = classes.Curve(self.right_frame)
-        self.curve.pack(padx=20)
-        self.import_button = tk.Button(self.left_frame, text='Import Excel file', command=self.import_excel)
-        self.import_button.pack()
+        self.__curve = classes.Curve(self.__right_frame)
+        self.__curve.pack(padx=20)
+        self.__import_button = tk.Button(self.__left_frame, text='Import Excel file', command=self.__import_excel)
+        self.__import_button.pack()
 
-    def upd_persons(self) -> None:
+    def __upd_persons(self) -> None:
         """ Update collector and performer combobox values from database"""
         persons = db.update('person')
-        self.collector_combobox['values'] = persons
-        self.performer_combobox['values'] = persons
+        self.__collector_combobox['values'] = persons
+        self.__performer_combobox['values'] = persons
 
-    def upd_zones(self) -> None:
+    def __upd_zones(self) -> None:
         """Update zone combobox values from database"""
-        self.zone_combobox['values'] = db.update('zone')
+        self.__zone_combobox['values'] = db.update('zone')
 
-    def upd_locations(self) -> None:
+    def __upd_locations(self) -> None:
         """Update location combobox values from database"""
-        self.location_combobox['values'] = db.update('location')
+        self.__location_combobox['values'] = db.update('location')
 
-    def upd_fw(self, event) -> None:
+    def __upd_fw(self, event) -> None:
         """Update fractions entry if scheme was modified in Settings"""
-        if len(self.weight_entry.headers) != len(upd_fract()[cfg.def_fract]):
-            self.weight_entry.upd(upd_fract()[cfg.def_fract])
+        if self.__weight_entry.get_width() != len(upd_fract()[cfg.def_fract]):
+            self.__weight_entry.upd(upd_fract()[cfg.def_fract])
 
-    def gather_info(self) -> storage.SampleData:
+    def __gather_info(self) -> storage.SampleData:
         """:return: SampleData dataclass with sample information"""
         return storage.SampleData(
-            collector=self.collector_combobox.get(),
-            performer=self.performer_combobox.get(),
-            sample=self.sample_entry.get(),
-            location=self.location_combobox.get(),
-            zone=self.zone_combobox.get(),
-            lat=self.lat_entry.get(),
-            lon=self.lon_entry.get(),
-            sampling_date=self.date_entry.get()
+            collector=self.__collector_combobox.get(),
+            performer=self.__performer_combobox.get(),
+            sample=self.__sample_entry.get(),
+            location=self.__location_combobox.get(),
+            zone=self.__zone_combobox.get(),
+            lat=self.__lat_entry.get(),
+            lon=self.__lon_entry.get(),
+            sampling_date=self.__date_entry.get()
         )
 
     @staticmethod
-    def calculate_indices(fractions: np.array, weights: np.array):
+    def __calculate_indices(fractions: np.array, weights: np.array):
         """
         Calculations for compute and import methods
 
@@ -176,35 +177,35 @@ class Sample(ttk.Frame):
             SD=round(phi[68], cfg.rnd_ind)
         )
 
-    def compute(self):
+    def __compute(self):
         """:return: fractions and cumulative weights, indices values in IndicesData dataclass"""
         fractions = upd_fract()[cfg.def_fract]
-        weights = np.array(self.weight_entry.get(), dtype=float)
-        cumulative_weights, indices = self.calculate_indices(fractions, weights)
+        weights = np.array(self.__weight_entry.get(), dtype=float)
+        cumulative_weights, indices = self.__calculate_indices(fractions, weights)
         return fractions, cumulative_weights, indices
 
-    def check_sample(self) -> None:
+    def __check_sample(self) -> None:
         """
         Insert calculated data in tables and plot
 
         :return: None
         """
-        fractions, cumulative_weights, ind = self.compute()
+        fractions, cumulative_weights, ind = self.__compute()
         # Update indices table
-        self.indices_table.delete(*self.indices_table.get_children())
-        self.indices_table.insert('', 'end', values=ind.get())
+        self.__indices_table.delete(*self.__indices_table.get_children())
+        self.__indices_table.insert('', 'end', values=ind.get())
         # Update fractions and cumulative weights table
-        self.fractions_table.delete(*self.fractions_table.get_children())
+        self.__fractions_table.delete(*self.__fractions_table.get_children())
         for i in range(len(fractions)):
-            self.fractions_table.insert('', 'end', values=(fractions[i], cumulative_weights[i]))
+            self.__fractions_table.insert('', 'end', values=(fractions[i], cumulative_weights[i]))
         # Update plot
-        self.curve.upd([fractions], [cumulative_weights], [self.sample_entry.get()])
+        self.__curve.upd([fractions], [cumulative_weights], [self.__sample_entry.get()])
 
-    def add_btn_cmd(self) -> None:
+    def __add_btn_cmd(self) -> None:
         """Add info and calculated parameters into database"""
-        db.add(*self.compute(), self.gather_info())
+        db.add(*self.__compute(), self.__gather_info())
 
-    def vali_date(self, value: str) -> bool:
+    def __vali_date(self, value: str) -> bool:
         """
         Validation of date
 
@@ -213,15 +214,15 @@ class Sample(ttk.Frame):
         """
         pattern = r'[1|2][0-9]{3}-(0[1-9]|1[0-2])-(0[1-9]|[1-2][0-9]|3[0-1])'
         if re.fullmatch(pattern, value) is None:
-            self.date_entry.config(fg='red')
-            self.add_btn.config(state='disabled', text='Please use yyyy-mm-dd date format.')
+            self.__date_entry.config(fg='red')
+            self.__add_btn.config(state='disabled', text='Please use yyyy-mm-dd date format.')
             return False
         else:
-            self.date_entry.config(fg='black')
-            self.add_btn.config(state='normal', text='Add')
+            self.__date_entry.config(fg='black')
+            self.__add_btn.config(state='normal', text='Add')
             return True
 
-    def validate_sample(self, value: str) -> bool:
+    def __validate_sample(self, value: str) -> bool:
         """
         Validation of sample
 
@@ -229,15 +230,15 @@ class Sample(ttk.Frame):
         :return: False if sample name already exists in database
         """
         if value in db.update('sample'):
-            self.sample_entry.config(fg='red')
-            self.add_btn.config(state='disabled', text=f'Sample "{value}" already exists')
+            self.__sample_entry.config(fg='red')
+            self.__add_btn.config(state='disabled', text=f'Sample "{value}" already exists')
             return False
         else:
-            self.date_entry.config(fg='black')
-            self.add_btn.config(state='normal', text='Add')
+            self.__date_entry.config(fg='black')
+            self.__add_btn.config(state='normal', text='Add')
             return True
 
-    def import_excel(self) -> None:
+    def __import_excel(self) -> None:
         """Import Excel workbook to database"""
         # Open Excel workbook
         wb = openpyxl.load_workbook(filedialog.askopenfilename(title='Open Excel book',
@@ -255,7 +256,7 @@ class Sample(ttk.Frame):
             # Read each column in row, write to row
             for col in worksheet.iter_cols(1, worksheet.max_column):
                 row.append(col[i].value)
-            if self.validate_sample(row[2]) is False:
+            if self.__validate_sample(row[2]) is False:
                 if messagebox.askyesno(title='Conflict',
                                        message=f'Sample{row[2]} already exists in database. Do you want to rename it'
                                                f' to {row[2]}-{worksheet.title}?'):
@@ -267,7 +268,7 @@ class Sample(ttk.Frame):
             # Write sample information to SampleData dataclass
             info = storage.SampleData(*row[0:7], row[7].strftime("%Y-%m-%d"))
             # Calculate cumulative weights and indices
-            cumulative_weights, indices = self.calculate_indices(fractions, weights)
+            cumulative_weights, indices = self.__calculate_indices(fractions, weights)
             db.add(fractions, cumulative_weights, indices, info)
 
 
@@ -276,14 +277,15 @@ class CompareSamples(ttk.Frame):
     def __init__(self, container):
         super().__init__(container)
         # Table
-        self.comp_table = classes.Table(self, columns=storage.headers, scr_width=self.winfo_screenwidth(),
-                                        scr_height=self.winfo_screenheight(), name='CompareSamples', tables=db.tables)
-        self.comp_table.pack()
+        self.__comp_table = classes.Table(self, columns=storage.headers, scr_width=self.winfo_screenwidth(),
+                                          scr_height=self.winfo_screenheight(), name='CompareSamples', tables=db.tables)
+        self.__comp_table.pack()
         # Update Table, when focused
-        self.bind('<Visibility>', self.upd)
+        self.bind('<Visibility>', self.__upd)
 
-    def upd(self, event):
-        self.comp_table.update()
+    def __upd(self, event):
+        self.__comp_table.update()
+
 
 class Settings(ttk.Frame):
     """
@@ -292,115 +294,115 @@ class Settings(ttk.Frame):
     def __init__(self, container):
         super().__init__(container)
         # Little frame to align blocks
-        self.main = tk.Frame(self)
-        self.main.pack()
+        self.__main = tk.Frame(self)
+        self.__main.pack()
         # General settings LabelFrame
-        self.set_lb = tk.LabelFrame(self.main, text='General settings')
-        self.set_lb.pack(fill='both')
+        self.__set_lb = tk.LabelFrame(self.__main, text='General settings')
+        self.__set_lb.pack(fill='both')
         # Indices rounding
-        self.ind_rnd_label = tk.Label(self.set_lb, text='Indices rounding')
-        self.ind_rnd_label.grid(row=0, column=0)
-        self.ind_rnd = ttk.Combobox(self.set_lb, values=('1', '2', '3', '4'), width=38)
-        self.ind_rnd.insert(tk.END, str(cfg.rnd_ind))
-        self.ind_rnd.grid(row=0, column=1)
+        self.__ind_rnd_label = tk.Label(self.__set_lb, text='Indices rounding')
+        self.__ind_rnd_label.grid(row=0, column=0)
+        self.__ind_rnd = ttk.Combobox(self.__set_lb, values=('1', '2', '3', '4'), width=38)
+        self.__ind_rnd.insert(tk.END, str(cfg.rnd_ind))
+        self.__ind_rnd.grid(row=0, column=1)
         # Weights rounding
-        self.frac_rnd_label = tk.Label(self.set_lb, text='Weights rounding')
-        self.frac_rnd_label.grid(row=1, column=0)
-        self.frac_rnd = ttk.Combobox(self.set_lb, values=('1', '2', '3', '4'), width=38)
-        self.frac_rnd.insert(tk.END, str(cfg.rnd_frac))
-        self.frac_rnd.grid(row=1, column=1)
+        self.__frac_rnd_label = tk.Label(self.__set_lb, text='Weights rounding')
+        self.__frac_rnd_label.grid(row=1, column=0)
+        self.__frac_rnd = ttk.Combobox(self.__set_lb, values=('1', '2', '3', '4'), width=38)
+        self.__frac_rnd.insert(tk.END, str(cfg.rnd_frac))
+        self.__frac_rnd.grid(row=1, column=1)
         # Separator. Currently, used only in next two blocks.
-        self.sep_label = tk.Label(self.set_lb, text='Separator')
-        self.sep_label.grid(row=3, column=0)
-        self.sep_entry = ttk.Combobox(self.set_lb, values=(' ', ', '), width=38)
-        self.sep_entry.insert(tk.END, cfg.sep)
-        self.sep_entry.grid(row=3, column=1)
+        self.__sep_label = tk.Label(self.__set_lb, text='Separator')
+        self.__sep_label.grid(row=3, column=0)
+        self.__sep_entry = ttk.Combobox(self.__set_lb, values=(' ', ', '), width=38)
+        self.__sep_entry.insert(tk.END, cfg.sep)
+        self.__sep_entry.grid(row=3, column=1)
         # Fractions scheme selection
-        self.fract_label = tk.Label(self.set_lb, text='Select fractions scheme')
-        self.fract_label.grid(row=4, column=0)
-        self.fract_cb = ttk.Combobox(self.set_lb, postcommand=self.upd_fractions, width=38)
-        self.fract_cb.insert(tk.END, cfg.def_fract)
-        self.fract_cb.grid(row=4, column=1)
+        self.__fract_label = tk.Label(self.__set_lb, text='Select fractions scheme')
+        self.__fract_label.grid(row=4, column=0)
+        self.__fract_cb = ttk.Combobox(self.__set_lb, postcommand=self.__upd_fractions, width=38)
+        self.__fract_cb.insert(tk.END, cfg.def_fract)
+        self.__fract_cb.grid(row=4, column=1)
         # Apply Button
-        self.apply_button = tk.Button(self.set_lb, text='Apply settings', command=self.apply)
-        self.apply_button.grid(row=5, column=0)
+        self.__apply_button = tk.Button(self.__set_lb, text='Apply settings', command=self.__apply)
+        self.__apply_button.grid(row=5, column=0)
         # Converter
-        self.conv = tk.LabelFrame(self.main, text='Converter')
-        self.conv.pack(fill='both')
+        self.__conv = tk.LabelFrame(self.__main, text='Converter')
+        self.__conv.pack(fill='both')
         # Input and output
-        self.inp_label = tk.Label(self.conv, text='Input')
-        self.inp_label.grid(row=0, column=0)
-        self.inp = tk.Entry(self.conv, width=48)
-        self.inp.grid(row=0, column=1)
-        self.outp_label = tk.Label(self.conv, text='Output')
-        self.outp_label.grid(row=1, column=0)
-        self.outp = tk.Entry(self.conv, width=48)
-        self.outp.grid(row=1, column=1)
+        self.__inp_label = tk.Label(self.__conv, text='Input')
+        self.__inp_label.grid(row=0, column=0)
+        self.__inp = tk.Entry(self.__conv, width=48)
+        self.__inp.grid(row=0, column=1)
+        self.__outp_label = tk.Label(self.__conv, text='Output')
+        self.__outp_label.grid(row=1, column=0)
+        self.__outp = tk.Entry(self.__conv, width=48)
+        self.__outp.grid(row=1, column=1)
         # Convert mode
-        self.convert_options = ['D(mm) to D(φ)', 'D(mm) to D(μ)', 'D(φ) to D(mm)', 'D(φ) to D(μ)', 'D(μ) to D(mm)',
-                                'D(μ) to D(φ)']
-        self.convert_combobox = ttk.Combobox(self.conv, values=self.convert_options)
-        self.convert_combobox.grid(row=3, column=1)
+        self.__convert_options = ['D(mm) to D(φ)', 'D(mm) to D(μ)', 'D(φ) to D(mm)', 'D(φ) to D(μ)', 'D(μ) to D(mm)',
+                                  'D(μ) to D(φ)']
+        self.__convert_combobox = ttk.Combobox(self.__conv, values=self.__convert_options)
+        self.__convert_combobox.grid(row=3, column=1)
         # "Convert" button
-        self.convert_button = tk.Button(self.conv, text='Convert', command=self.convert)
-        self.convert_button.grid(row=3, column=0)
+        self.__convert_button = tk.Button(self.__conv, text='Convert', command=self.__convert)
+        self.__convert_button.grid(row=3, column=0)
         # Add fractions
-        self.fract_lf = tk.LabelFrame(self.main, text='Add fractions scheme')
-        self.fract_lf.pack(fill='both')
+        self.__fract_lf = tk.LabelFrame(self.__main, text='Add fractions scheme')
+        self.__fract_lf.pack(fill='both')
         # Name
-        self.fract_name_label = tk.Label(self.fract_lf, text='Name:')
-        self.fract_name_label.grid(row=0, column=0)
-        self.fract_name = tk.Entry(self.fract_lf, width=49)
-        self.fract_name.grid(row=0, column=1)
+        self.__fract_name_label = tk.Label(self.__fract_lf, text='Name:')
+        self.__fract_name_label.grid(row=0, column=0)
+        self.__fract_name = tk.Entry(self.__fract_lf, width=49)
+        self.__fract_name.grid(row=0, column=1)
         # Scheme
-        self.fract_sch_label = tk.Label(self.fract_lf, text='Scheme:')
-        self.fract_sch_label.grid(row=1, column=0)
-        self.fract_sch = tk.Entry(self.fract_lf, width=49)
-        self.fract_sch.grid(row=1, column=1)
+        self.__fract_sch_label = tk.Label(self.__fract_lf, text='Scheme:')
+        self.__fract_sch_label.grid(row=1, column=0)
+        self.__fract_sch = tk.Entry(self.__fract_lf, width=49)
+        self.__fract_sch.grid(row=1, column=1)
         # Add button
-        self.fract_add_button = tk.Button(self.fract_lf, text='Add', command=self.add_fractions)
-        self.fract_add_button.grid(row=2, column=0)
+        self.__fract_add_button = tk.Button(self.__fract_lf, text='Add', command=self.__add_fractions)
+        self.__fract_add_button.grid(row=2, column=0)
 
-    def convert(self) -> None:
+    def __convert(self) -> None:
         """Converter function. Insert into output converted values."""
-        inp = np.array(self.inp.get().split(cfg.sep), dtype=float)
-        if self.convert_combobox.get() == 'D(mm) to D(φ)':  # -log2(x, mm)
-            self.outp.delete(0, tk.END)
-            self.outp.insert(tk.END, f'{cfg.sep}'.join(map(str, np.around(-np.log2(inp), 2))))
-        if self.convert_combobox.get() == 'D(mm) to D(μ)':  # x,mm * 1000 / 2
-            self.outp.delete(0, tk.END)
-            self.outp.insert(tk.END, f'{cfg.sep}'.join(map(str, inp * 1000)))
-        if self.convert_combobox.get() == 'D(φ) to D(mm)':  # 1 / (2^x,phi)
-            self.outp.delete(0, tk.END)
-            self.outp.insert(tk.END, f'{cfg.sep}'.join(map(str, np.around(1 / (2 ** inp), 2))))
-        if self.convert_combobox.get() == 'D(φ) to D(μ)':  # 1000 / 2^x,phi
-            self.outp.delete(0, tk.END)
-            self.outp.insert(tk.END, f'{cfg.sep}'.join(map(str, np.around(1000 / (2 ** inp), 2))))
-        if self.convert_combobox.get() == 'D(μ) to D(φ)':  # -log2(x,mu / 1000)
-            self.outp.delete(0, tk.END)
-            self.outp.insert(tk.END, f'{cfg.sep}'.join(map(str, np.around(-np.log2(0.001 * inp), 2))))
-        if self.convert_combobox.get() == 'D(μ) to D(mm)':  # x,mu / 1000
-            self.outp.delete(0, tk.END)
-            self.outp.insert(tk.END, f'{cfg.sep}'.join(map(str, np.around(0.001 * inp, 2))))
+        inp = np.array(self.__inp.get().split(cfg.sep), dtype=float)
+        if self.__convert_combobox.get() == 'D(mm) to D(φ)':  # -log2(x, mm)
+            self.__outp.delete(0, tk.END)
+            self.__outp.insert(tk.END, f'{cfg.sep}'.join(map(str, np.around(-np.log2(inp), 2))))
+        if self.__convert_combobox.get() == 'D(mm) to D(μ)':  # x,mm * 1000 / 2
+            self.__outp.delete(0, tk.END)
+            self.__outp.insert(tk.END, f'{cfg.sep}'.join(map(str, inp * 1000)))
+        if self.__convert_combobox.get() == 'D(φ) to D(mm)':  # 1 / (2^x,phi)
+            self.__outp.delete(0, tk.END)
+            self.__outp.insert(tk.END, f'{cfg.sep}'.join(map(str, np.around(1 / (2 ** inp), 2))))
+        if self.__convert_combobox.get() == 'D(φ) to D(μ)':  # 1000 / 2^x,phi
+            self.__outp.delete(0, tk.END)
+            self.__outp.insert(tk.END, f'{cfg.sep}'.join(map(str, np.around(1000 / (2 ** inp), 2))))
+        if self.__convert_combobox.get() == 'D(μ) to D(φ)':  # -log2(x,mu / 1000)
+            self.__outp.delete(0, tk.END)
+            self.__outp.insert(tk.END, f'{cfg.sep}'.join(map(str, np.around(-np.log2(0.001 * inp), 2))))
+        if self.__convert_combobox.get() == 'D(μ) to D(mm)':  # x,mu / 1000
+            self.__outp.delete(0, tk.END)
+            self.__outp.insert(tk.END, f'{cfg.sep}'.join(map(str, np.around(0.001 * inp, 2))))
 
-    def apply(self) -> None:
+    def __apply(self) -> None:
         """Apply settings: write it to the config.txt, update cfg"""
-        cfg.sep = self.sep_entry.get()
-        cfg.rnd_ind = int(self.ind_rnd.get())
-        cfg.rnd_frac = int(self.frac_rnd.get())
-        cfg.def_fract = self.fract_cb.get()
+        cfg.sep = self.__sep_entry.get()
+        cfg.rnd_ind = int(self.__ind_rnd.get())
+        cfg.rnd_frac = int(self.__frac_rnd.get())
+        cfg.def_fract = self.__fract_cb.get()
         cfg.apply_settings()
 
-    def upd_fractions(self) -> None:
+    def __upd_fractions(self) -> None:
         """Update fractions combobox"""
-        self.fract_cb['values'] = list(i for i in upd_fract().keys())
+        self.__fract_cb['values'] = list(i for i in upd_fract().keys())
 
-    def add_fractions(self) -> None:
+    def __add_fractions(self) -> None:
         """
         Add fractions to the fractions.txt, update dictionary
         """
         with open('fractions.txt', 'a') as f:
-            f.write(f'\n{self.fract_name.get()}: {self.fract_sch.get()}')
+            f.write(f'\n{self.__fract_name.get()}: {self.__fract_sch.get()}')
 
 
 def upd_fract() -> dict:
