@@ -1,26 +1,27 @@
 import tkinter as tk
-from tkinter.ttk import Treeview
-import tkinter.filedialog
-import tkinter.messagebox
+from tkinter import ttk, filedialog, messagebox
 from functools import partial
 from matplotlib.figure import Figure
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2Tk
 from re import fullmatch
 import openpyxl
 
-import db
 import storage
-from db import read_query, get_id
 
 
-class MultipleEntry(tk.Frame):
+class MultipleEntry:
     """Grid of Entry widgets. 1st row - disabled headers."""
+    frame = None
+
     def __init__(self, root, hdrs):
-        super().__init__(root)
+        self.frame = tk.Frame(root)
         self.__headers = []
         self.__entry = []
-        self.__vcmd = (self.register(self.__validate), '%P', '%W')
+        self.__vcmd = (self.frame.register(self.__validate), '%P', '%W')
         self.upd(hdrs)
+
+    def __len__(self):
+        return len(self.__headers)
 
     def get(self) -> list:
         """:return: list of data from 2nd row"""
@@ -29,18 +30,14 @@ class MultipleEntry(tk.Frame):
             get_all.append(i.get())
         return get_all
 
-    def get_width(self) -> int:
-        """:return: width of table"""
-        return len(self.__headers)
-
     def upd(self, hdrs) -> None:
         """Change the size and headers"""
         for i in range(len(hdrs)):
-            self.__headers.append(tk.Entry(self, width=5))
+            self.__headers.append(tk.Entry(self.frame, width=5))
             self.__headers[i].insert(tk.END, hdrs[i])
             self.__headers[i].config(state=tk.DISABLED)
             self.__headers[i].grid(row=0, column=i)
-            self.__entry.append(tk.Entry(self, width=5, validate='focusout', validatecommand=self.__vcmd))
+            self.__entry.append(tk.Entry(self.frame, width=5, validate='focusout', validatecommand=self.__vcmd))
             self.__entry[i].grid(row=1, column=i)
 
     def __validate(self, value: str, widget: str) -> bool:
@@ -50,10 +47,10 @@ class MultipleEntry(tk.Frame):
         :return: True if the decimal is in the entry, else false. Turn font color to red if not decimal, else black.
         """
         if fullmatch(r'\d+(\.\d*)?', value):
-            self.nametowidget(widget).config(fg='black')
+            self.frame.nametowidget(widget).config(fg='black')
             return True
         else:
-            self.nametowidget(widget).config(fg='red')
+            self.frame.nametowidget(widget).config(fg='red')
             return False
 
 
@@ -62,7 +59,8 @@ class Table(tk.LabelFrame):
     Create the table with sorting (LMB on heading), filter (RMB on heading),
     plotting of selected samples ("Plot" button) and export ("Export" button)
     """
-    def __init__(self, root, scr_width, scr_height, columns, name: str, tables):
+    def __init__(self, root, db, scr_width, scr_height, columns, name: str):
+        self.db = db
         # Create the LabelFrame with the table label
         super().__init__(root, text=name)
         self.pack(fill='both', expand=1)
@@ -71,14 +69,14 @@ class Table(tk.LabelFrame):
         self.__scrollbar = tk.Scrollbar(self)
         self.__scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
         # Create the table
-        self.__trv = Treeview(self, height=int(scr_height/25))
+        self.__trv = ttk.Treeview(self, height=int(scr_height/25))
         self.__trv['columns'] = self.__columns
         self.__trv.column('#0', width=0)
         for i in self.__columns:
             self.__trv.column(i, width=int(scr_width / len(columns)) - 2)
         self.__trv.pack()
         # Bind events: right click and left click
-        self.__trv.bind('<Button-1>', self.__click)
+        self.__trv.bind('<Button-1>', self.__l_click_header)
         self.__trv.bind('<Button-3>', self.__rclick)
         # Clear button
         self.__clear_button = tk.Button(self, text='Clear all filters', command=self.__clear_filter)
@@ -90,14 +88,20 @@ class Table(tk.LabelFrame):
         self.__export_btn = tk.Button(self, text='Export table as xlsx', command=self.__export)
         self.__export_btn.pack(side=tk.LEFT)
         # "Delete" button
-        self.__delete_btn = tk.Button(self, text='Delete selected', command=self.__delete_sel)
+        self.__delete_btn = tk.Button(self, text='Delete selected', command=self.__delete_selected)
         self.__delete_btn.pack(side=tk.LEFT)
         # Variables with current sorting and filter parameters
         self.__order = 0
         self.__order_by = columns[0]
         self.__filters = set('')
         self.__range_filters = set('')
-        self.__tables = tables
+        self.__tables = '''
+            locations
+                INNER JOIN samples USING (location_id)
+                INNER JOIN zones USING (zone_id)
+                INNER JOIN (SELECT person_id as pid, person as collector_name FROM persons) ON pid = samples.collector
+                INNER JOIN (SELECT person_id as p, person as performer_name FROM persons) ON p = samples.performer
+            '''
         # Add headings
         for i in range(len(columns)):
             self.__trv.heading(i, text=columns[i])
@@ -124,12 +128,12 @@ class Table(tk.LabelFrame):
 
         query = f'SELECT {", ".join(columns)}\nFROM {self.__tables}{f}\n' \
                 f'ORDER BY {self.__order_by} {"ASC" if self.__order == 0 else "DESC"}'
-        rows = read_query(query)
+        rows = self.db.run_query(query)
         self.__trv.delete(*self.__trv.get_children())
         for i in rows:
             self.__trv.insert('', 'end', values=i)
 
-    def __click(self, event) -> None:
+    def __l_click_header(self, event) -> None:
         """
         LMB click.
 
@@ -235,6 +239,7 @@ class Table(tk.LabelFrame):
         self.__range_filters = set('')
         self.__upd()
 
+    # TODO: implement cache
     def __plot(self) -> None:
         """Plot selected samples"""
         # Get selected
@@ -248,11 +253,13 @@ class Table(tk.LabelFrame):
             # Append sample to sel_samp
             sel_samp.append(sample)
             # Get values from database
-            res = read_query(f'''
-            SELECT fraction, weight
-            FROM fractions
-            WHERE sample_id = {get_id('sample', sample)}
-            ''')
+            res = self.db.run_query(
+                f'''
+                SELECT fraction, weight
+                FROM fractions
+                WHERE sample_id = {self.db.get_id('sample', sample)}
+                '''
+            )
             fr = []
             w = []
             # Create the lists of fractions and weights for one sample
@@ -277,29 +284,31 @@ class Table(tk.LabelFrame):
         wb = openpyxl.Workbook()
         ws = wb.active
         ws.title = "Sand database"
-        ws.append(storage.headers)  # Append headers
+        ws.append(self.db.headers)  # Append headers
         # For each row...
         for i in self.__trv.get_children():
             # Read weights and fractions
-            col = read_query(
-                f'''SELECT weight, fraction
-                FROM fractions
-                    INNER JOIN samples USING(sample_id)
-                WHERE sample = "{self.__trv.item(i)['values'][4]}"'''
+            col = self.db.run_query(
+                f'''
+                    SELECT weight, fraction
+                    FROM fractions
+                        INNER JOIN samples USING(sample_id)
+                    WHERE sample = "{self.__trv.item(i)['values'][4]}"
+                '''
             )
             # Append row in for: table row + weights + fractions
             ws.append(self.__trv.item(i)['values'] + ['weights:'] + [i[0] for i in col] +
                       ['fractions:'] + [i[1] for i in col])
-        wb.save(filename=tk.filedialog.asksaveasfilename())  # Save excel book
+        wb.save(filename=f"{tk.filedialog.asksaveasfilename(filetypes=(('Excel file', '*.xlsx'),))}.xlsx")  # Save book
 
-    def __delete_sel(self):
+    def __delete_selected(self):
         selected = self.__trv.selection()
         samples = []
         for i in selected:
             samples.append(self.__trv.item(i)['values'][4])
         if tk.messagebox.askokcancel(title='Delete',
                                      message=f'Please confirm deletion of samples:\n{", ".join(samples)}'):
-            db.delete_selected(samples)
+            self.db.delete_samples(samples)
             self.__upd()
 
 

@@ -70,9 +70,10 @@ class UPD:
     zones: tuple
 
 
-# Table headers
-headers = ('Collector', 'Sampling_date', 'Performer', 'Analysis_date', 'Sample', 'Location', 'Zone',
-           'Latitude', 'Longitude', 'Mdφ', 'Mz', 'QDφ', 'σ_1', 'Skqφ', 'Sk_1', 'KG', 'SD')
+# TODO: replace to db class
+# Table headers Now in DataBase.headers
+# headers = ('Collector', 'Sampling_date', 'Performer', 'Analysis_date', 'Sample', 'Location', 'Zone',
+#            'Latitude', 'Longitude', 'Mdφ', 'Mz', 'QDφ', 'σ_1', 'Skqφ', 'Sk_1', 'KG', 'SD')
 # Sand size classification
 sand = '\n0 to -1     Very coarse\n1 to 0      Coarse\n2 to 1      Medium\n3 to 2      Fine\n4 to 3      Very fine\n'
 # Indices info

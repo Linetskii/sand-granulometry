@@ -6,7 +6,7 @@ Fast and simple to use application for routine analysis of sand samples
 * Python 3.9 or above
 
 ## Setup
-To setup, create and activate a new python venv and run `pip install -r- reqirements.txt`
+To setup, create and activate a new python venv and run `pip install -r requirements.txt`
 Then run main.py using `py main.py`
 
 ### How to import my data?

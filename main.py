@@ -1,44 +1,48 @@
 import tkinter as tk
-from tkinter import ttk
-from tkinter import filedialog
-from tkinter import messagebox
+from tkinter import ttk, filedialog, messagebox
 
 import numpy as np
 import re
 import openpyxl
 
-import db
+from db import DataBase
 import classes
 import storage
 
 
-class App(tk.Tk):
+class App:
     """Main window"""
+    tk_window = None
+
     def __init__(self):
-        super().__init__()
+        self.tk_window = tk.Tk()
         # Configure the root window
-        self.title('Sand granulometric composition')
-        self.state('zoomed')
-        self.iconphoto(True, tk.PhotoImage(file='icon.png'))
+        self.tk_window.title('Sand granulometric composition')
+        self.tk_window.state('zoomed')
+        test_img = tk.PhotoImage(file='icon.png')
+        self.tk_window.iconphoto(True, test_img)
         # Create notebook
-        self.notebook = ttk.Notebook(self)
+        self.notebook = ttk.Notebook(self.tk_window)
         self.notebook.pack(fill='both', expand=True)
         # Create tabs
-        self.__Sample = Sample(self.notebook)
-        self.__CompareSamples = CompareSamples(self.notebook)
-        self.__Settings = Settings(self.notebook)
+        self.__sample = Sample(self.notebook)
+        self.__compare_samples = CompareSamples(self.notebook)
+        self.__settings = Settings(self.notebook)
         # Add tabs to notebook
-        self.notebook.add(self.__Sample, text='Add the sample')
-        self.notebook.add(self.__CompareSamples, text='Compare samples')
-        self.notebook.add(self.__Settings, text='Settings')
+
+        self.notebook.add(self.__sample.frame, text='Add the sample')
+        self.notebook.add(self.__compare_samples.frame, text='Compare samples')
+        self.notebook.add(self.__settings.frame, text='Settings')
 
 
-class Sample(ttk.Frame):
+class Sample:
     """Sample tab"""
+    frame = None
+
     def __init__(self, container):
-        super().__init__(container)
+        self.frame = ttk.Frame(container)
         # Create left frame
-        self.__left_frame = tk.Frame(self)
+        self.__left_frame = tk.Frame(self.frame)
         self.__left_frame.pack(side=tk.LEFT, anchor='nw', fill='y')
         # Create input block
         self.__info_frame = tk.Frame(self.__left_frame)
@@ -56,7 +60,7 @@ class Sample(ttk.Frame):
         # Sample
         self.__sample_label = tk.Label(self.__info_frame, text='Sample name')
         self.__sample_label.grid(row=2, column=0, sticky='w')
-        self.__s_vcmd = (self.register(self.__validate_sample), '%P')
+        self.__s_vcmd = (self.frame.register(self.__validate_sample), '%P')
         self.__sample_entry = tk.Entry(self.__info_frame, validate='focusout', validatecommand=self.__s_vcmd, width=40)
         self.__sample_entry.grid(row=2, column=1)
         # Location
@@ -82,7 +86,7 @@ class Sample(ttk.Frame):
         # Sampling date
         self.__date_label = tk.Label(self.__info_frame, text='Sampling date')
         self.__date_label.grid(row=7, column=0, sticky='w')
-        self.__d_vcmd = (self.register(self.__vali_date), '%P')
+        self.__d_vcmd = (self.frame.register(self.__vali_date), '%P')
         self.__date_entry = tk.Entry(self.__info_frame, width=40, validate='focusout', validatecommand=self.__d_vcmd)
         self.__date_entry.insert(tk.END, 'yyyy-mm-dd')
         self.__date_entry.grid(row=7, column=1)
@@ -90,9 +94,9 @@ class Sample(ttk.Frame):
         self.__fractions_label = tk.Label(self.__info_frame, text='Fractions and weights:')
         self.__fractions_label.grid(row=8, column=0, sticky='w')
         self.__weight_entry = classes.MultipleEntry(self.__left_frame, upd_fract()[cfg.def_fract])
-        self.__weight_entry.pack()
+        self.__weight_entry.frame.pack()
         # Update entry table when tab is focuseed
-        self.bind('<FocusIn>', self.__upd_fw)
+        self.frame.bind('<FocusIn>', self.__upd_fw)
         # Frame for buttons
         self.__btn_frame = tk.Frame(self.__left_frame)
         self.__btn_frame.pack()
@@ -107,7 +111,7 @@ class Sample(ttk.Frame):
         self.__indices_table['columns'] = list(range(8))
         for i in range(8):
             self.__indices_table.column(i, width=50)
-            self.__indices_table.heading(i, text=storage.headers[9 + i])
+            self.__indices_table.heading(i, text=db.headers[9 + i])
         self.__indices_table.pack(pady=20)
         # Create fractions table
         self.__fractions_table = ttk.Treeview(self.__left_frame, columns=('0', '1'), show='headings', height=10)
@@ -115,7 +119,7 @@ class Sample(ttk.Frame):
         self.__fractions_table.heading('0', text='Fractions')
         self.__fractions_table.heading('1', text='Weights')
         # Create right frame
-        self.__right_frame = tk.Frame(self)
+        self.__right_frame = tk.Frame(self.frame)
         self.__right_frame.pack(anchor='nw')
         # Create cumulative curve plot in right frame
         self.__curve = classes.Curve(self.__right_frame)
@@ -123,6 +127,8 @@ class Sample(ttk.Frame):
         self.__import_button = tk.Button(self.__left_frame, text='Import Excel file', command=self.__import_excel)
         self.__import_button.pack()
 
+    # TODO: rename methods according to functionality
+    # TODO: Refactoring according to SOLID principals
     def __upd_persons(self) -> None:
         """ Update collector and performer combobox values from database"""
         persons = db.update('person')
@@ -139,7 +145,7 @@ class Sample(ttk.Frame):
 
     def __upd_fw(self, event) -> None:
         """Update fractions entry if scheme was modified in Settings"""
-        if self.__weight_entry.get_width() != len(upd_fract()[cfg.def_fract]):
+        if len(self.__weight_entry) != len(upd_fract()[cfg.def_fract]):
             self.__weight_entry.upd(upd_fract()[cfg.def_fract])
 
     def __gather_info(self) -> storage.SampleData:
@@ -240,6 +246,7 @@ class Sample(ttk.Frame):
 
     def __import_excel(self) -> None:
         """Import Excel workbook to database"""
+        print('Import Excel file...')
         # Open Excel workbook
         wb = openpyxl.load_workbook(filedialog.askopenfilename(title='Open Excel book',
                                                                filetypes=[("Excel files", ".xlsx .xls")]))
@@ -272,29 +279,33 @@ class Sample(ttk.Frame):
             db.add(fractions, cumulative_weights, indices, info)
 
 
-class CompareSamples(ttk.Frame):
+class CompareSamples:
     """Compare Samples tab"""
+    frame = None
+
     def __init__(self, container):
-        super().__init__(container)
+        self.frame = ttk.Frame(container)
         # Table
-        self.__comp_table = classes.Table(self, columns=storage.headers, scr_width=self.winfo_screenwidth(),
-                                          scr_height=self.winfo_screenheight(), name='CompareSamples', tables=db.tables)
+        self.__comp_table = classes.Table(self.frame, db, columns=db.headers, scr_width=self.frame.winfo_screenwidth(),
+                                          scr_height=self.frame.winfo_screenheight(), name='CompareSamples')
         self.__comp_table.pack()
         # Update Table, when focused
-        self.bind('<Visibility>', self.__upd)
+        self.frame.bind('<Visibility>', self.__upd)
 
     def __upd(self, event):
         self.__comp_table.update()
 
 
-class Settings(ttk.Frame):
+class Settings:
     """
     Settings tab
     """
+    frame = None
+
     def __init__(self, container):
-        super().__init__(container)
+        self.frame = ttk.Frame(container)
         # Little frame to align blocks
-        self.__main = tk.Frame(self)
+        self.__main = tk.Frame(self.frame)
         self.__main.pack()
         # General settings LabelFrame
         self.__set_lb = tk.LabelFrame(self.__main, text='General settings')
@@ -422,11 +433,11 @@ def upd_fract() -> dict:
 
 if __name__ == '__main__':
     # Create database, if not exists
-    db.create_db()
+    db = DataBase()
     # Create config.txt dataclass
     cfg = storage.CFG()
     # Update config dataclass from config.txt file
     cfg.update()
     # Create Tk main window
     app = App()
-    app.mainloop()
+    app.tk_window.mainloop()
