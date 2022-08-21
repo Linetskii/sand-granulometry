@@ -1,10 +1,8 @@
 import tkinter as tk
 from tkinter import ttk, filedialog, messagebox
-
 import numpy as np
 import re
 import openpyxl
-
 from db import DataBase, CFG
 import classes
 import storage
@@ -98,20 +96,6 @@ class SampleInfoBlock:
         self.__performer_combobox['values'] = persons
         self.__zone_combobox['values'] = DataBase().update('zone')
         self.__location_combobox['values'] = DataBase().update('location')
-
-    # def __upd_persons(self) -> None:
-    #     """ Update collector and performer combobox values from database"""
-    #     persons = DataBase().update('person')
-    #     self.__collector_combobox['values'] = persons
-    #     self.__performer_combobox['values'] = persons
-    #
-    # def __upd_zones(self) -> None:
-    #     """Update zone combobox values from database"""
-    #     self.__zone_combobox['values'] = DataBase().update('zone')
-    #
-    # def __upd_locations(self) -> None:
-    #     """Update location combobox values from database"""
-    #     self.__location_combobox['values'] = DataBase().update('location')
 
     def gather_info(self) -> storage.SampleData:
         """:return: SampleData dataclass with sample information"""
@@ -305,19 +289,82 @@ class Sample:
             DataBase().add(fractions, cumulative_weights, indices, info)
 
 
-class Settings:
-    """
-    Settings tab
-    """
-    frame = None
-
+class Converter:
+    # Converter
     def __init__(self, container):
-        self.frame = ttk.Frame(container)
-        # Little frame to align blocks
-        self.__main = tk.Frame(self.frame)
-        self.__main.pack()
+        self.__conv = tk.LabelFrame(container, text='Converter')
+        self.__conv.pack(fill='both')
+        # Input and output
+        self.__inp_label = tk.Label(self.__conv, text='Input')
+        self.__inp_label.grid(row=0, column=0)
+        self.__inp = tk.Entry(self.__conv, width=48)
+        self.__inp.grid(row=0, column=1)
+        self.__outp_label = tk.Label(self.__conv, text='Output')
+        self.__outp_label.grid(row=1, column=0)
+        self.__outp = tk.Entry(self.__conv, width=48)
+        self.__outp.grid(row=1, column=1)
+        # Convert mode
+        self.__convert_options = ['D(mm) to D(φ)', 'D(mm) to D(μ)', 'D(φ) to D(mm)', 'D(φ) to D(μ)', 'D(μ) to D(mm)',
+                                  'D(μ) to D(φ)']
+        self.__convert_combobox = ttk.Combobox(self.__conv, values=self.__convert_options)
+        self.__convert_combobox.grid(row=3, column=1)
+        # "Convert" button
+        self.__convert_button = tk.Button(self.__conv, text='Convert', command=self.__convert)
+        self.__convert_button.grid(row=3, column=0)
+
+    def __convert(self) -> None:
+        """Converter function. Insert into output converted values."""
+        inp = np.array(self.__inp.get().split(CFG().sep), dtype=float)
+        if self.__convert_combobox.get() == 'D(mm) to D(φ)':  # -log2(x, mm)
+            self.__outp.delete(0, tk.END)
+            self.__outp.insert(tk.END, f'{CFG().sep}'.join(map(str, np.around(-np.log2(inp), 2))))
+        if self.__convert_combobox.get() == 'D(mm) to D(μ)':  # x,mm * 1000 / 2
+            self.__outp.delete(0, tk.END)
+            self.__outp.insert(tk.END, f'{CFG().sep}'.join(map(str, inp * 1000)))
+        if self.__convert_combobox.get() == 'D(φ) to D(mm)':  # 1 / (2^x,phi)
+            self.__outp.delete(0, tk.END)
+            self.__outp.insert(tk.END, f'{CFG().sep}'.join(map(str, np.around(1 / (2 ** inp), 2))))
+        if self.__convert_combobox.get() == 'D(φ) to D(μ)':  # 1000 / 2^x,phi
+            self.__outp.delete(0, tk.END)
+            self.__outp.insert(tk.END, f'{CFG().sep}'.join(map(str, np.around(1000 / (2 ** inp), 2))))
+        if self.__convert_combobox.get() == 'D(μ) to D(φ)':  # -log2(x,mu / 1000)
+            self.__outp.delete(0, tk.END)
+            self.__outp.insert(tk.END, f'{CFG().sep}'.join(map(str, np.around(-np.log2(0.001 * inp), 2))))
+        if self.__convert_combobox.get() == 'D(μ) to D(mm)':  # x,mu / 1000
+            self.__outp.delete(0, tk.END)
+            self.__outp.insert(tk.END, f'{CFG().sep}'.join(map(str, np.around(0.001 * inp, 2))))
+
+
+class AddFractions:
+    def __init__(self, container):
+        # Add fractions
+        self.__fract_lf = tk.LabelFrame(container, text='Add fractions scheme')
+        self.__fract_lf.pack(fill='both')
+        # Name
+        self.__fract_name_label = tk.Label(self.__fract_lf, text='Name:')
+        self.__fract_name_label.grid(row=0, column=0)
+        self.__fract_name = tk.Entry(self.__fract_lf, width=49)
+        self.__fract_name.grid(row=0, column=1)
+        # Scheme
+        self.__fract_sch_label = tk.Label(self.__fract_lf, text='Scheme:')
+        self.__fract_sch_label.grid(row=1, column=0)
+        self.__fract_sch = tk.Entry(self.__fract_lf, width=49)
+        self.__fract_sch.grid(row=1, column=1)
+        # Add button
+        self.__fract_add_button = tk.Button(self.__fract_lf, text='Add', command=self.__add_fractions)
+        self.__fract_add_button.grid(row=2, column=0)
+
+    def __add_fractions(self) -> None:
+        """
+        Add fractions to the fractions.txt, update dictionary
+        """
+        Fractions().schemes = (self.__fract_name.get(), self.__fract_sch.get())
+
+
+class GeneralSettings:
+    def __init__(self, container):
         # General settings LabelFrame
-        self.__set_lb = tk.LabelFrame(self.__main, text='General settings')
+        self.__set_lb = tk.LabelFrame(container, text='General settings')
         self.__set_lb.pack(fill='both')
         # Indices rounding
         self.__ind_rnd_label = tk.Label(self.__set_lb, text='Indices rounding')
@@ -346,64 +393,6 @@ class Settings:
         # Apply Button
         self.__apply_button = tk.Button(self.__set_lb, text='Apply settings', command=self.__apply)
         self.__apply_button.grid(row=5, column=0)
-        # Converter
-        self.__conv = tk.LabelFrame(self.__main, text='Converter')
-        self.__conv.pack(fill='both')
-        # Input and output
-        self.__inp_label = tk.Label(self.__conv, text='Input')
-        self.__inp_label.grid(row=0, column=0)
-        self.__inp = tk.Entry(self.__conv, width=48)
-        self.__inp.grid(row=0, column=1)
-        self.__outp_label = tk.Label(self.__conv, text='Output')
-        self.__outp_label.grid(row=1, column=0)
-        self.__outp = tk.Entry(self.__conv, width=48)
-        self.__outp.grid(row=1, column=1)
-        # Convert mode
-        self.__convert_options = ['D(mm) to D(φ)', 'D(mm) to D(μ)', 'D(φ) to D(mm)', 'D(φ) to D(μ)', 'D(μ) to D(mm)',
-                                  'D(μ) to D(φ)']
-        self.__convert_combobox = ttk.Combobox(self.__conv, values=self.__convert_options)
-        self.__convert_combobox.grid(row=3, column=1)
-        # "Convert" button
-        self.__convert_button = tk.Button(self.__conv, text='Convert', command=self.__convert)
-        self.__convert_button.grid(row=3, column=0)
-        # Add fractions
-        self.__fract_lf = tk.LabelFrame(self.__main, text='Add fractions scheme')
-        self.__fract_lf.pack(fill='both')
-        # Name
-        self.__fract_name_label = tk.Label(self.__fract_lf, text='Name:')
-        self.__fract_name_label.grid(row=0, column=0)
-        self.__fract_name = tk.Entry(self.__fract_lf, width=49)
-        self.__fract_name.grid(row=0, column=1)
-        # Scheme
-        self.__fract_sch_label = tk.Label(self.__fract_lf, text='Scheme:')
-        self.__fract_sch_label.grid(row=1, column=0)
-        self.__fract_sch = tk.Entry(self.__fract_lf, width=49)
-        self.__fract_sch.grid(row=1, column=1)
-        # Add button
-        self.__fract_add_button = tk.Button(self.__fract_lf, text='Add', command=self.__add_fractions)
-        self.__fract_add_button.grid(row=2, column=0)
-
-    def __convert(self) -> None:
-        """Converter function. Insert into output converted values."""
-        inp = np.array(self.__inp.get().split(CFG().sep), dtype=float)
-        if self.__convert_combobox.get() == 'D(mm) to D(φ)':  # -log2(x, mm)
-            self.__outp.delete(0, tk.END)
-            self.__outp.insert(tk.END, f'{CFG().sep}'.join(map(str, np.around(-np.log2(inp), 2))))
-        if self.__convert_combobox.get() == 'D(mm) to D(μ)':  # x,mm * 1000 / 2
-            self.__outp.delete(0, tk.END)
-            self.__outp.insert(tk.END, f'{CFG().sep}'.join(map(str, inp * 1000)))
-        if self.__convert_combobox.get() == 'D(φ) to D(mm)':  # 1 / (2^x,phi)
-            self.__outp.delete(0, tk.END)
-            self.__outp.insert(tk.END, f'{CFG().sep}'.join(map(str, np.around(1 / (2 ** inp), 2))))
-        if self.__convert_combobox.get() == 'D(φ) to D(μ)':  # 1000 / 2^x,phi
-            self.__outp.delete(0, tk.END)
-            self.__outp.insert(tk.END, f'{CFG().sep}'.join(map(str, np.around(1000 / (2 ** inp), 2))))
-        if self.__convert_combobox.get() == 'D(μ) to D(φ)':  # -log2(x,mu / 1000)
-            self.__outp.delete(0, tk.END)
-            self.__outp.insert(tk.END, f'{CFG().sep}'.join(map(str, np.around(-np.log2(0.001 * inp), 2))))
-        if self.__convert_combobox.get() == 'D(μ) to D(mm)':  # x,mu / 1000
-            self.__outp.delete(0, tk.END)
-            self.__outp.insert(tk.END, f'{CFG().sep}'.join(map(str, np.around(0.001 * inp, 2))))
 
     def __apply(self) -> None:
         """Apply settings: write it to the config.txt, update cfg"""
@@ -417,11 +406,22 @@ class Settings:
         """Update fractions combobox"""
         self.__fract_cb['values'] = list(i for i in Fractions().schemes.keys())
 
-    def __add_fractions(self) -> None:
-        """
-        Add fractions to the fractions.txt, update dictionary
-        """
-        Fractions().schemes = (self.__fract_name.get(), self.__fract_sch.get())
+
+class Settings:
+    """
+    Settings tab
+    """
+    frame = None
+
+    def __init__(self, container):
+        self.frame = ttk.Frame(container)
+        # Little frame to align blocks
+        self.__main = tk.Frame(self.frame)
+        self.__main.pack()
+        self.__general = GeneralSettings(self.__main)
+        self.__conv = Converter(self.__main)
+        # Add fractions
+        self.__fract = AddFractions(self.__main)
 
 
 class Fractions:
