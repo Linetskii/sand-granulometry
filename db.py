@@ -3,22 +3,24 @@ from os import path, getcwd
 from datetime import date
 
 
-class DataBase:
-    __instance = None
+class SingletonMetaclass(type):
+    _instances = {}
+
+    def __call__(cls, *args, **kwargs):
+        if cls not in cls._instances:
+            instance = super().__call__(*args, **kwargs)
+            cls._instances[cls] = instance
+        return cls._instances[cls]
+
+
+class DataBase(metaclass=SingletonMetaclass):
     __connection = None
 
-    def __new__(cls, *args, **kwargs):
-        if cls.__instance is None:
-            cls.__instance = super().__new__(cls)
-        return cls.__instance
-
     def __init__(self):
-        # Create connection with SQL database.
         DataBase.__connection = self.__create_connection('GCDB.sqlite3')
         self.__create_db()
-        # Part of query, that connect all tables
-        self.__headers = ('Collector', 'Sampling_date', 'Performer', 'Analysis_date', 'Sample', 'Location', 'Zone',
-                          'Latitude', 'Longitude', 'Mdφ', 'Mz', 'QDφ', 'σ_1', 'Skqφ', 'Sk_1', 'KG', 'SD')
+        self.__headers = ('Collector_name', 'Sampling_date', 'Performer_name', 'Analysis_date', 'Sample', 'Location',
+                          'Zone', 'Latitude', 'Longitude', 'Mdφ', 'Mz', 'QDφ', 'σ_1', 'Skqφ', 'Sk_1', 'KG', 'SD')
 
     @property
     def headers(self):
@@ -133,7 +135,8 @@ class DataBase:
 
     def get_id(self, item: str, val: str) -> str:
         """
-        Get desired id from SQL database. Val must be in column "item" of table "item"+"s" with id in "item"+"_id" column.
+        Get desired id from SQL database.
+        Val must be in column "item" of table "item"+"s" with id in "item"+"_id" column.
 
         :param item: column name with desired value
         :param val: value to search
@@ -187,8 +190,8 @@ class DataBase:
         '''
         self.run_query(new_person)
         # Add sample to sample table
-        new_sample = f''' INSERT INTO samples (sample, location_id, zone_id, latitude, longitude, sampling_date, collector, 
-        analysis_date, performer, 'Mdφ', 'Mz', 'QDφ', 'σ_1', 'Skqφ', 'Sk_1', 'KG', 'SD')
+        new_sample = f''' INSERT INTO samples (sample, location_id, zone_id, latitude, longitude, sampling_date,
+        collector, analysis_date, performer, 'Mdφ', 'Mz', 'QDφ', 'σ_1', 'Skqφ', 'Sk_1', 'KG', 'SD')
         VALUES ( 
             "{info.sample}", 
             "{self.get_id('location', info.location)}",
@@ -234,3 +237,38 @@ class DataBase:
         WHERE sample = "{'" OR sample = "'.join(samples)}"
         """
         self.run_query(query_s)
+
+
+class CFG(metaclass=SingletonMetaclass):
+    """
+    Config class.
+    """
+    __slots__ = ('sep', 'rnd_ind', 'rnd_frac', 'def_fract')
+
+    def __init__(self):
+        self.sep = None
+        self.rnd_ind = None
+        self.rnd_frac = None
+        self.def_fract = None
+        self.__update()
+        print(self.sep, self.rnd_ind, self.rnd_frac, self.def_fract)
+
+    def __update(self) -> None:
+        """
+        Update from config.txt
+        """
+        with open('config.txt', 'r') as config:
+            self.sep = config.readline().split(' = ')[1][1:-2]
+            self.rnd_ind = int(config.readline().split(' = ')[1])
+            self.rnd_frac = int(config.readline().split(' = ')[1])
+            self.def_fract = config.readline().split(' = ')[1]
+        print(self.sep, self.rnd_ind, self.rnd_frac, self.def_fract)
+
+    def apply_settings(self, sep, rnd_ind, rnd_frac, def_fract) -> None:
+        """
+        Write settings to config.txt
+        """
+        with open('config.txt', 'w') as config:
+            config.write(f"sep = \'{sep}\'\nrnd_ind = {rnd_ind}\n"
+                         f"rnd_frac = {rnd_frac}\ndef_fract = {def_fract}")
+        self.__update()

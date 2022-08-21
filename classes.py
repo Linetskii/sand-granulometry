@@ -1,12 +1,9 @@
 import tkinter as tk
 from tkinter import ttk, filedialog, messagebox
-from functools import partial
 from matplotlib.figure import Figure
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2Tk
 from re import fullmatch
 import openpyxl
-
-import storage
 
 
 class MultipleEntry:
@@ -54,47 +51,48 @@ class MultipleEntry:
             return False
 
 
-class Table(tk.LabelFrame):
+class Table:
     """
     Create the table with sorting (LMB on heading), filter (RMB on heading),
     plotting of selected samples ("Plot" button) and export ("Export" button)
     """
-    def __init__(self, root, db, scr_width, scr_height, columns, name: str):
-        self.db = db
-        # Create the LabelFrame with the table label
-        super().__init__(root, text=name)
-        self.pack(fill='both', expand=1)
+    frame = None
+
+    def __init__(self, root, db, columns):
+        self.__db = db
+        self.frame = ttk.Frame(root)
+        self.frame.pack(fill='both', expand=1)
         self.__columns = columns
         # Create scrollbar for table
-        self.__scrollbar = tk.Scrollbar(self)
+        self.__scrollbar = tk.Scrollbar(self.frame)
         self.__scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
         # Create the table
-        self.__trv = ttk.Treeview(self, height=int(scr_height/25))
+        self.__trv = ttk.Treeview(self.frame)
         self.__trv['columns'] = self.__columns
         self.__trv.column('#0', width=0)
         for i in self.__columns:
-            self.__trv.column(i, width=int(scr_width / len(columns)) - 2)
-        self.__trv.pack()
+            self.__trv.column(i, width=int(self.frame.winfo_screenwidth() / len(columns)) - 2, minwidth=40)
+        self.__trv.pack(fill='both', expand=1)
         # Bind events: right click and left click
         self.__trv.bind('<Button-1>', self.__l_click_header)
         self.__trv.bind('<Button-3>', self.__rclick)
         # Clear button
-        self.__clear_button = tk.Button(self, text='Clear all filters', command=self.__clear_filter)
+        self.__clear_button = tk.Button(self.frame, text='Clear all filters', command=self.clear_filter)
         self.__clear_button.pack(side=tk.LEFT)
         # "Plot" Button
-        self.__plt_btn = tk.Button(self, text='Plot selected samples', command=self.__plot)
+        self.__plt_btn = tk.Button(self.frame, text='Plot selected samples', command=self.__plot)
         self.__plt_btn.pack(side=tk.LEFT)
         # "Export" button
-        self.__export_btn = tk.Button(self, text='Export table as xlsx', command=self.__export)
+        self.__export_btn = tk.Button(self.frame, text='Export table as xlsx', command=self.__export)
         self.__export_btn.pack(side=tk.LEFT)
         # "Delete" button
-        self.__delete_btn = tk.Button(self, text='Delete selected', command=self.__delete_selected)
+        self.__delete_btn = tk.Button(self.frame, text='Delete selected', command=self.__delete_selected)
         self.__delete_btn.pack(side=tk.LEFT)
         # Variables with current sorting and filter parameters
         self.__order = 0
         self.__order_by = columns[0]
-        self.__filters = set('')
-        self.__range_filters = set('')
+        self.filters = set('')
+        self.range_filters = set('')
         self.__tables = '''
             locations
                 INNER JOIN samples USING (location_id)
@@ -107,19 +105,31 @@ class Table(tk.LabelFrame):
             self.__trv.heading(i, text=columns[i])
         # Configure scrollbar
         self.__scrollbar.config(command=self.__trv.yview)
+        self.__trv['yscrollcommand'] = self.__scrollbar.set
         # Update table after creation
-        self.__upd()
+        self.upd()
 
-    def __upd(self) -> None:
+    @property
+    def trv(self):
+        return self.__trv
+
+    @trv.setter
+    def trv(self, rows):
+
+        for i in rows:
+            self.__trv.insert('', 'end', values=i)
+
+    def upd(self) -> None:
         """Update the table from database, using filters and sorting parameters"""
         columns = ('Collector_name', 'Sampling_date', 'Performer_name', 'Analysis_date', 'Sample', 'Location', 'Zone',
                    'Latitude', 'Longitude', 'Mdφ', 'Mz', 'QDφ', 'σ_1', 'Skqφ', 'Sk_1', 'KG', 'SD')
-        ranges = " AND ".join(self.__range_filters)
-        values = " OR ".join(self.__filters)
-        if self.__range_filters != self.__filters:
-            if self.__filters == set(''):
+        ranges = " AND ".join(self.range_filters)
+        values = " OR ".join(self.filters)
+
+        if self.range_filters != self.filters:
+            if self.filters == set(''):
                 f = f'WHERE {ranges}'
-            elif self.__range_filters == set(''):
+            elif self.range_filters == set(''):
                 f = f'WHERE {values}'
             else:
                 f = f'\nWHERE {ranges} AND ({values})'
@@ -128,10 +138,10 @@ class Table(tk.LabelFrame):
 
         query = f'SELECT {", ".join(columns)}\nFROM {self.__tables}{f}\n' \
                 f'ORDER BY {self.__order_by} {"ASC" if self.__order == 0 else "DESC"}'
-        rows = self.db.run_query(query)
+        print(query)
         self.__trv.delete(*self.__trv.get_children())
-        for i in rows:
-            self.__trv.insert('', 'end', values=i)
+        print(f'ran:{ranges}, val:{values}')
+        self.trv = self.__db.run_query(query)
 
     def __l_click_header(self, event) -> None:
         """
@@ -154,7 +164,7 @@ class Table(tk.LabelFrame):
             self.__order = 1
         else:
             self.__order = 0
-        self.__upd()
+        self.upd()
 
     def __rclick(self, event) -> None:
         """
@@ -165,79 +175,20 @@ class Table(tk.LabelFrame):
         if self.__trv.identify('region', event.x, event.y) == 'heading':
             # Get column number
             column = int(self.__trv.identify_column(event.x)[1:]) - 1
+
             # Create filter window
-            filter_window = tk.Toplevel()
-            filter_window.title(string='Filtration')
-            f_label = tk.Label(filter_window, text=self.__columns[column])
-            f_label.pack()
-            # Create description for indices
             if column > 8:
-                description = tk.Label(filter_window, text=storage.info[self.__columns[column]], justify=tk.LEFT)
-                description.pack()
-            # Create from-to block for columns with date or float numbers
-            if column > 8 or column == 1 or column == 3:
-                from_to_frame = tk.Frame(filter_window)
-                from_to_frame.pack()
-                from_l = tk.Label(from_to_frame, text='From:')
-                from_l.grid(row=0, column=0)
-                from_e = tk.Entry(from_to_frame, width=32)
-                from_e.grid(row=1, column=0)
-                to_l = tk.Label(from_to_frame, text='To:')
-                to_l.grid(row=2, column=0)
-                to_e = tk.Entry(from_to_frame, width=32)
-                to_e.grid(row=3, column=0)
-                ftf = partial(self.__from_to_filtration, self.__columns[column], from_e, to_e)
-                from_to_filter = tk.Button(from_to_frame, text='Filter', command=ftf)
-                from_to_filter.grid(row=6, column=0)
-            # Create Listbox
-            lb_frame = tk.Frame(filter_window)
-            lb_frame.pack()
-            lb = tk.Listbox(lb_frame, selectmode=tk.MULTIPLE, width=32)
-            lb.grid(row=0, column=0)
-            # Set is used to exclude repeated data, converted to the sorted list
-            lb_set = set()
-            for child in self.__trv.get_children():
-                lb_set.add(self.__trv.item(child)['values'][column])
-            lb_set = sorted(list(lb_set))
-            # Insert it into Listbox
-            for i in range(len(lb_set)):
-                lb.insert(tk.END, lb_set[i])
-            f = partial(self.__filtration, self.__columns[column], lb)
-            # Filter button
-            filter_button = tk.Button(lb_frame, text='Filter', command=f)
-            filter_button.grid(row=8, column=0)
-            # Clear button
-            clear_button = tk.Button(lb_frame, text='Clear all', command=self.__clear_filter)
-            clear_button.grid(row=9, column=0)
+                filter_window = FilterWindowIndex(column, self.__columns[column], self)
+            elif column == 1 or column == 3:
+                filter_window = FilterWindowRange(column, self.__columns[column], self)
+            else:
+                filter_window = FilterWindow(column, self.__columns[column], self)
 
-    def __from_to_filtration(self, column: str, from_e: tk.Entry, to_e: tk.Entry) -> None:
-        """
-        Leave values between 'from' and 'to'
-
-        :param column: column name
-        :param from_e: From Entry
-        :param to_e: to Entry
-        """
-        self.__range_filters.add(f'{column} BETWEEN "{from_e.get()}" AND "{to_e.get()}"')
-        self.__upd()
-
-    def __filtration(self, column: str, lb: tk.Listbox) -> None:
-        """
-        Filter the table
-
-        :param column: column
-        :param lb: listbox with values
-        :return: None
-        """
-        for i in lb.curselection():
-            self.__filters.add(f'{column} = "{lb.get(i)}"')
-        self.__upd()
-
-    def __clear_filter(self) -> None:
+    def clear_filter(self) -> None:
         """Clear all filters"""
-        self.__filters = set('')
-        self.__range_filters = set('')
-        self.__upd()
+        self.filters = set('')
+        self.range_filters = set('')
+        self.upd()
 
     # TODO: implement cache
     def __plot(self) -> None:
@@ -253,11 +204,11 @@ class Table(tk.LabelFrame):
             # Append sample to sel_samp
             sel_samp.append(sample)
             # Get values from database
-            res = self.db.run_query(
+            res = self.__db.run_query(
                 f'''
                 SELECT fraction, weight
                 FROM fractions
-                WHERE sample_id = {self.db.get_id('sample', sample)}
+                WHERE sample_id = {self.__db.get_id('sample', sample)}
                 '''
             )
             fr = []
@@ -284,11 +235,11 @@ class Table(tk.LabelFrame):
         wb = openpyxl.Workbook()
         ws = wb.active
         ws.title = "Sand database"
-        ws.append(self.db.headers)  # Append headers
+        ws.append(self.__db.headers)  # Append headers
         # For each row...
         for i in self.__trv.get_children():
             # Read weights and fractions
-            col = self.db.run_query(
+            col = self.__db.run_query(
                 f'''
                     SELECT weight, fraction
                     FROM fractions
@@ -308,8 +259,95 @@ class Table(tk.LabelFrame):
             samples.append(self.__trv.item(i)['values'][4])
         if tk.messagebox.askokcancel(title='Delete',
                                      message=f'Please confirm deletion of samples:\n{", ".join(samples)}'):
-            self.db.delete_samples(samples)
-            self.__upd()
+            self.__db.delete_samples(samples)
+            self.upd()
+
+
+class FilterWindow:
+    def __init__(self, column, column_name, table: Table):
+        self._filters = table.filters
+        self._range_filters = table.range_filters
+        self._upd = table.upd
+        self._clear_filter = table.clear_filter
+        self._column_name = column_name
+        # Create filter window
+        self._filter_window = tk.Toplevel()
+        self._filter_window.title(string="Filtration")
+        self._f_label = tk.Label(self._filter_window, text=column_name)
+        self._f_label.pack(side="top")
+        # Create Listbox
+        self._lb_frame = tk.Frame(self._filter_window)
+        self._lb_frame.pack(side="bottom")
+        self._lb = tk.Listbox(self._lb_frame, selectmode=tk.MULTIPLE, width=32)
+        self._lb.grid(row=0, column=0)
+        # Set is used to exclude repeated data, converted to the sorted list
+        self._lb_set = set()
+        for child in table.trv.get_children():
+            self._lb_set.add(table.trv.item(child)['values'][column])
+        self._lb_set = sorted(list(self._lb_set))
+        # Insert it into Listbox
+        for i in range(len(self._lb_set)):
+            self._lb.insert(tk.END, self._lb_set[i])
+        # Filter button
+        self.filter_button = tk.Button(self._lb_frame, text='Filter', command=self._filtration)
+        self.filter_button.grid(row=8, column=0)
+        # Clear button
+        self.clear_button = tk.Button(self._lb_frame, text='Clear all', command=self._clear_filter)
+        self.clear_button.grid(row=9, column=0)
+
+    def _filtration(self) -> None:
+        """
+        Update table filters and renew the table
+
+        :return: None
+        """
+        for i in self._lb.curselection():
+            self._filters.add(f'{self._column_name} = "{self._lb.get(i)}"')
+        self._upd()
+
+
+class FilterWindowRange(FilterWindow):
+    def __init__(self, column, column_name, table: Table):
+        super().__init__(column, column_name, table)
+        self._from_to_frame = tk.Frame(self._filter_window)
+        self._from_to_frame.pack(side='bottom')
+        self._from_l = tk.Label(self._from_to_frame, text="From:")
+        self._from_l.grid(row=0, column=0)
+        self._from_e = tk.Entry(self._from_to_frame, width=32)
+        self._from_e.grid(row=1, column=0)
+        self._to_l = tk.Label(self._from_to_frame, text="To:")
+        self._to_l.grid(row=2, column=0)
+        self._to_e = tk.Entry(self._from_to_frame, width=32)
+        self._to_e.grid(row=3, column=0)
+        self._from_to_filter = tk.Button(self._from_to_frame, text='Filter', command=self._from_to_filtration)
+        self._from_to_filter.grid(row=6, column=0)
+
+    def _from_to_filtration(self) -> None:
+        self._range_filters.add(f'{self._column_name} BETWEEN "{self._from_e.get()}" AND "{self._to_e.get()}"')
+        self._upd()
+
+
+class FilterWindowIndex(FilterWindowRange):
+    # Sand size classification
+    __sand = '\n0 to -1     Very coarse\n1 to 0      Coarse\n' \
+             '2 to 1      Medium\n3 to 2      Fine\n4 to 3      Very fine\n'
+    # Indices info
+    __info = {'Mdφ': 'Median particle diameter\nMdφ = φ50' + __sand,
+              'Mz': 'Graphic mean particle diameter (Mz)\nMz = (φ16 + φ50 + φ84) / 3' + __sand,
+              'QDφ': 'Phi quartile deviation\nQDφ = (φ75 - φ25) / 2\n',
+              'σ_1': 'Inclusive graphic standard deviation\nσi= (φ84 - φ16) / 4 + (φ95 - φ5) / 6.6\n'
+              '<0.5    Good sorting\n0.5-1   Moderate sorting\n1<      Poor sorting\n',
+              'Skqφ': 'Phi quartile skewness\nSkqφ = (φ25 + φ75 - φ50) / 2\n',
+              'Sk_1': 'Inclusive graphic skewness\nSki = (φ16 + φ84 - 2φ50) / (2(φ84 - φ16)) + \n(φ5 + φ95 - 2φ5) / '
+                    '(2(φ95 - φ50))\n+0.1< fine skewed sand\n-0.1-+0.1 Near symmetry\n<-0.1 coarse skewed sand\n',
+              'KG': 'Kurtosis\nKG = ((φ95 - φ5) / 2.44(φ75 - φ25)\n1.0< wide spread\n<1.0 little spread\n',
+              'SD': 'Standard deviation\nSD = φ86\n'
+              }
+
+    def __init__(self, column, column_name, table: Table):
+        super().__init__(column, column_name, table)
+        description = tk.Label(self._filter_window, text=FilterWindowIndex.__info[column_name], justify=tk.LEFT)
+        description.pack(side="top")
 
 
 class Curve(tk.Frame):
