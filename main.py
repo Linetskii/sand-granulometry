@@ -3,6 +3,7 @@ from tkinter import ttk, filedialog, messagebox
 import numpy as np
 import re
 import openpyxl
+from contextlib import contextmanager
 from db import DataBase, CFG
 import classes
 import storage
@@ -36,7 +37,6 @@ class App:
 
 class SampleInfoBlock:
     """Block for gathering information about sample in Sample tab"""
-    # Create input block
     def __init__(self, root, add_btn):
         self.__add_btn = add_btn
         self.__info_frame = tk.Frame(root)
@@ -91,11 +91,11 @@ class SampleInfoBlock:
         return self.__sample_entry.get()
 
     def upd_combobox_values(self):
-        persons = DataBase().update('person')
+        persons = DataBase().get_data('person')
         self.__collector_combobox['values'] = persons
         self.__performer_combobox['values'] = persons
-        self.__zone_combobox['values'] = DataBase().update('zone')
-        self.__location_combobox['values'] = DataBase().update('location')
+        self.__zone_combobox['values'] = DataBase().get_data('zone')
+        self.__location_combobox['values'] = DataBase().get_data('location')
 
     def gather_info(self) -> storage.SampleData:
         """:return: SampleData dataclass with sample information"""
@@ -111,37 +111,33 @@ class SampleInfoBlock:
         )
 
     def __vali_date(self, value: str) -> bool:
-        """
-        Validation of date
-
-        :param value: date_entry string
-        :return: True if value is yyyy.mm.dd date, else False
-        """
         pattern = r'[1|2][0-9]{3}-(0[1-9]|1[0-2])-(0[1-9]|[1-2][0-9]|3[0-1])'
         if re.fullmatch(pattern, value) is None:
-            self.__date_entry.config(fg='red')
-            self.__add_btn.config(state='disabled', text='Please use yyyy-mm-dd date format.')
+            self.__vali_date_failed()
             return False
         else:
-            self.__date_entry.config(fg='black')
-            self.__add_btn.config(state='normal', text='Add')
+            self.__validation_confirmed()
             return True
 
     def __validate_sample(self, value: str) -> bool:
-        """
-        Validation of sample
-
-        :param value: sample_entry string
-        :return: False if sample name already exists in database
-        """
-        if value in DataBase().update('sample'):
-            self.__sample_entry.config(fg='red')
-            self.__add_btn.config(state='disabled', text=f'Sample "{value}" already exists')
+        if value in DataBase().get_data('sample'):
+            self.__validate_sample_failed(value)
             return False
         else:
-            self.__sample_entry.config(fg='black')
-            self.__add_btn.config(state='normal', text='Add')
+            self.__validation_confirmed()
             return True
+
+    def __vali_date_failed(self):
+        self.__add_btn.config(state='disabled', text='Please use yyyy-mm-dd date format.')
+        self.__date_entry.config(fg='red')
+
+    def __validate_sample_failed(self, value):
+        self.__add_btn.config(state='disabled', text=f'Sample "{value}" already exists')
+        self.__sample_entry.config(fg='red')
+
+    def __validation_confirmed(self):
+        self.__sample_entry.config(fg='black')
+        self.__add_btn.config(state='normal', text='Add')
 
 
 class WeightsBlock:
@@ -164,30 +160,32 @@ class WeightsBlock:
         """:return: fractions and cumulative weights, indices values in IndicesData dataclass"""
         fractions = Fractions().schemes[CFG().def_fract]
         weights = np.array(self.__weight_entry.get(), dtype=float)
-        cumulative_weights, indices = self.calculate_indices(fractions, weights)
+        cumulative_weights, indices = WeightsAndIndices(fractions, weights).get()
         return fractions, cumulative_weights, indices
 
-    @staticmethod
-    def calculate_indices(fractions: np.array, weights: np.array):
-        """
-        Calculations for compute and import methods
 
-        :return: Cumulative weights array and IndicesData dataclass with indices
-        """
-        cumulative_weights = np.cumsum(100 * weights / sum(weights)).round(CFG().rnd_frac)
-        percentiles = (5, 16, 25, 50, 68, 75, 84, 95)
-        phi = dict(zip(percentiles, np.interp(percentiles, cumulative_weights, fractions)))
-        return cumulative_weights, storage.IndicesData(
-            MdPhi=round(phi[50], CFG().rnd_ind),
-            Mz=round((phi[16] + phi[50] + phi[84]) / 3, CFG().rnd_ind),
-            QDPhi=round((phi[75] - phi[25]) / 2, CFG().rnd_ind),
-            sigma_1=round((phi[84] - phi[16]) / 4 + (phi[95] - phi[5]) / 6.6, CFG().rnd_ind),
-            SkqPhi=round((phi[25] + phi[75] - phi[50]) / 2, CFG().rnd_ind),
-            Sk_1=round((phi[16] + phi[84] - 2 * phi[50]) / (2 * (phi[84] - phi[16])) +
-                       (phi[5] + phi[95] - 2 * phi[50]) / (2 * (phi[95] - phi[5])), CFG().rnd_ind),
-            KG=round((phi[95] - phi[5]) / (2.44 * (phi[75] - phi[25])), CFG().rnd_ind),
-            SD=round(phi[68], CFG().rnd_ind)
+class WeightsAndIndices:
+
+    def __init__(self, fractions: np.array, weights: np.array):
+        self.__fractions = fractions
+        self.__cumulative_weights = np.cumsum(100 * weights / sum(weights)).round(CFG().rnd_frac)
+        self.__percentiles = (5, 16, 25, 50, 68, 75, 84, 95)
+        self.__phi = dict(zip(self.__percentiles, np.interp(self.__percentiles, self.__cumulative_weights, fractions)))
+        self.__indices = storage.IndicesData(
+            MdPhi=round(self.__phi[50], CFG().rnd_ind),
+            Mz=round((self.__phi[16] + self.__phi[50] + self.__phi[84]) / 3, CFG().rnd_ind),
+            QDPhi=round((self.__phi[75] - self.__phi[25]) / 2, CFG().rnd_ind),
+            sigma_1=round((self.__phi[84] - self.__phi[16]) / 4 + (self.__phi[95] - self.__phi[5]) / 6.6, CFG().rnd_ind),
+            SkqPhi=round((self.__phi[25] + self.__phi[75] - self.__phi[50]) / 2, CFG().rnd_ind),
+            Sk_1=round((self.__phi[16] + self.__phi[84] - 2 * self.__phi[50]) / (2 * (self.__phi[84] - self.__phi[16]))
+                       + (self.__phi[5] + self.__phi[95] - 2 * self.__phi[50]) / (2 * (self.__phi[95] - self.__phi[5])),
+                       CFG().rnd_ind),
+            KG=round((self.__phi[95] - self.__phi[5]) / (2.44 * (self.__phi[75] - self.__phi[25])), CFG().rnd_ind),
+            SD=round(self.__phi[68], CFG().rnd_ind)
         )
+
+    def get(self) -> tuple:
+        return self.__cumulative_weights, self.__indices
 
 
 class Sample:
@@ -228,11 +226,7 @@ class Sample:
         # Create cumulative curve plot in right frame
         self.__curve = classes.Curve(self.__right_frame)
         self.__curve.pack(padx=20)
-        self.__import_button = tk.Button(self.__left_frame, text='Import Excel file', command=self.__import_excel)
-        self.__import_button.pack()
-
-    # TODO: rename methods according to functionality
-    # TODO: Refactoring according to SOLID principals
+        self.__import = ImportExcel(self.__left_frame)
 
     def __check_sample(self) -> None:
         """
@@ -253,40 +247,55 @@ class Sample:
 
     def __add_btn_cmd(self) -> None:
         """Add info and calculated parameters into database"""
-        DataBase().add(*self.__weights_block.compute(), self.__info.gather_info())
+        DataBase().add_to_db(*self.__weights_block.compute(), self.__info.gather_info())
         self.__info.upd_combobox_values()
 
-    def __import_excel(self) -> None:
-        """Import Excel workbook to database"""
-        print('Import Excel file...')
-        # Open Excel workbook
+
+class ImportExcel:
+    def __init__(self, container):
+        self.__import_button = tk.Button(container, text='Import Excel file',
+                                         command=self.__import_worksheet)
+        self.__import_button.pack()
+        self.fractions = None
+        self.title = None
+
+    @contextmanager
+    def __open_wb(self):
         wb = openpyxl.load_workbook(filedialog.askopenfilename(title='Open Excel book',
-                                                               filetypes=[("Excel files", ".xlsx .xls")]))
-        # Open active sheet
-        worksheet = wb.active
-        fractions = []
-        # Read fractions
-        for col in worksheet.iter_cols(9, worksheet.max_column):
-            fractions.append(col[0].value)
-        fractions = np.array(fractions, dtype=float)
-        # Read rows
-        for i in range(1, worksheet.max_row):
-            row = []
-            # Read each column in row, write to row
-            for col in worksheet.iter_cols(1, worksheet.max_column):
-                row.append(col[i].value)
-            if self.__info.sample not in DataBase().update('sample'):
-                if messagebox.askyesno(title='Conflict',
-                                       message=f'Sample{row[2]} already exists in database. Do you want to rename it'
-                                               f' to {row[2]}-{worksheet.title}?'):
-                    row[2] = f'{row[2]}-{worksheet.title}'
-            # Write weights
-            weights = np.array(row[8:worksheet.max_column], dtype=float)
-            # Write sample information to SampleData dataclass
-            info = storage.SampleData(*row[0:7], row[7].strftime("%Y-%m-%d"))
-            # Calculate cumulative weights and indices
-            cumulative_weights, indices = self.__weights_block.calculate_indices(fractions, weights)
-            DataBase().add(fractions, cumulative_weights, indices, info)
+                                                               filetypes=[("Excel files", ".xlsx .xls")]),
+                                    data_only=True)
+        try:
+            yield wb
+        finally:
+            wb.close()
+
+    def __import_worksheet(self):
+        with self.__open_wb() as wb:
+            # Open active sheet
+            worksheet = wb.active
+            self.title = worksheet.title[:]
+            # Read fractions
+            self.fractions = np.array([col[0].value for col in worksheet.iter_cols(9, worksheet.max_column)],
+                                      dtype=float)
+            # Read rows
+            for i in range(1, worksheet.max_row):
+                # Read each column in row, write to row
+                row = [col[i].value for col in worksheet.iter_cols(1, worksheet.max_column)]
+                if row[2] in DataBase().get_data('sample'):
+                    if messagebox.askyesno(title='Conflict',
+                                           message=f'Sample{row[2]} already exists in database. Do you want to rename '
+                                                   f'it to {row[2]}-{worksheet.title}?'):
+                        row[2] = f'{row[2]}-{worksheet.title}'
+                    else:
+                        continue
+                # Write weights
+                weights = np.array(row[8:worksheet.max_column], dtype=float)
+                # Write sample information to SampleData dataclass
+                info = storage.SampleData(*row[0:7], row[7].strftime("%Y-%m-%d"))
+                DataBase().add_to_db(self.fractions, *WeightsAndIndices(self.fractions, weights).get(), info)
+
+    def already_in_db(self, sample: str):
+        pass
 
 
 class Converter:

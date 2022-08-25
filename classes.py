@@ -4,6 +4,7 @@ from matplotlib.figure import Figure
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2Tk
 from re import fullmatch
 import openpyxl
+from contextlib import contextmanager
 
 
 class MultipleEntry:
@@ -115,32 +116,28 @@ class Table:
 
     @trv.setter
     def trv(self, rows):
-
         for i in rows:
             self.__trv.insert('', 'end', values=i)
+
+    def __create_where_clause(self):
+        ranges = " AND ".join(self.range_filters)
+        values = " OR ".join(self.filters)
+        if self.range_filters == self.filters:
+            return ''
+        if self.filters == set(''):
+            return f'WHERE {ranges}'
+        elif self.range_filters == set(''):
+            return f'WHERE {values}'
+        else:
+            return f'\nWHERE {ranges} AND ({values})'
 
     def upd(self) -> None:
         """Update the table from database, using filters and sorting parameters"""
         columns = ('Collector_name', 'Sampling_date', 'Performer_name', 'Analysis_date', 'Sample', 'Location', 'Zone',
                    'Latitude', 'Longitude', 'Mdφ', 'Mz', 'QDφ', 'σ_1', 'Skqφ', 'Sk_1', 'KG', 'SD')
-        ranges = " AND ".join(self.range_filters)
-        values = " OR ".join(self.filters)
-
-        if self.range_filters != self.filters:
-            if self.filters == set(''):
-                f = f'WHERE {ranges}'
-            elif self.range_filters == set(''):
-                f = f'WHERE {values}'
-            else:
-                f = f'\nWHERE {ranges} AND ({values})'
-        else:
-            f = ''
-
-        query = f'SELECT {", ".join(columns)}\nFROM {self.__tables}{f}\n' \
+        query = f'SELECT {", ".join(columns)}\nFROM {self.__tables}{self.__create_where_clause()}\n' \
                 f'ORDER BY {self.__order_by} {"ASC" if self.__order == 0 else "DESC"}'
-        print(query)
         self.__trv.delete(*self.__trv.get_children())
-        print(f'ran:{ranges}, val:{values}')
         self.trv = self.__db.run_query(query)
 
     def __l_click_header(self, event) -> None:
@@ -229,28 +226,34 @@ class Table:
         plot.pack()
         plot.upd(sel_fract, sel_weight, sel_samp)
 
+    @staticmethod
+    @contextmanager
+    def create_workbook():
+        wb = openpyxl.Workbook()
+        try:
+            yield wb
+        finally:
+            wb.save(filename=f"{tk.filedialog.asksaveasfilename(filetypes=(('Excel file', '*.xlsx'),))}.xlsx")
+
     def __export(self):
         """Export as Excel .xlsx file"""
-        # Create workbook and worksheet
-        wb = openpyxl.Workbook()
-        ws = wb.active
-        ws.title = "Sand database"
-        ws.append(self.__db.headers)  # Append headers
-        # For each row...
-        for i in self.__trv.get_children():
-            # Read weights and fractions
-            col = self.__db.run_query(
-                f'''
-                    SELECT weight, fraction
-                    FROM fractions
-                        INNER JOIN samples USING(sample_id)
-                    WHERE sample = "{self.__trv.item(i)['values'][4]}"
-                '''
-            )
-            # Append row in for: table row + weights + fractions
-            ws.append(self.__trv.item(i)['values'] + ['weights:'] + [i[0] for i in col] +
-                      ['fractions:'] + [i[1] for i in col])
-        wb.save(filename=f"{tk.filedialog.asksaveasfilename(filetypes=(('Excel file', '*.xlsx'),))}.xlsx")  # Save book
+        with self.create_workbook() as wb:
+            # Active worksheet
+            ws = wb.active
+            ws.append(self.__db.headers)
+            for i in self.__trv.get_children():
+                # Read weights and fractions
+                col = self.__db.run_query(
+                    f'''
+                        SELECT weight, fraction
+                        FROM fractions
+                            INNER JOIN samples USING(sample_id)
+                        WHERE sample = "{self.__trv.item(i)['values'][4]}"
+                    '''
+                )
+                # Append row in form: table row + weights + fractions
+                ws.append(self.__trv.item(i)['values'] + ['weights:'] + [i[0] for i in col] +
+                          ['fractions:'] + [i[1] for i in col])
 
     def __delete_selected(self):
         selected = self.__trv.selection()

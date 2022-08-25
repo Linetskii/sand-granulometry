@@ -149,10 +149,9 @@ class DataBase(metaclass=SingletonMetaclass):
         '''
         return self.run_query(query)[0][0]
 
-    # TODO: rename methods below adding the changeable entities to method-name
-    def update(self, column: str, table: str = None) -> tuple:
+    def get_data(self, column: str, table: str = None) -> tuple:
         """
-        Update the upd_dict from SQL database. If table is not specified, uses column + 's' as table name
+        Get data from specified table and column. If table is not specified, uses column + 's' as table name
 
         :param column: column name
         :param table: table name
@@ -162,15 +161,7 @@ class DataBase(metaclass=SingletonMetaclass):
         else:
             return tuple(map(lambda x: x[0], self.run_query(f'''SELECT {column} FROM {table}''')))
 
-    def add(self, fract, c_weights, indices, info) -> None:
-        """
-        Add sample into database
-
-        :param indices: Data class with indices
-        :param info:  Data class with sample information
-        :param fract: sand fractions iterable
-        :param c_weights: cumulative weights iterable
-        """
+    def add_to_db(self, fract, c_weights, indices, info) -> None:
         # Add location to locations table
         new_location = f'''
         INSERT INTO locations (location)
@@ -251,7 +242,6 @@ class CFG(metaclass=SingletonMetaclass):
         self.rnd_frac = None
         self.def_fract = None
         self.__update()
-        print(self.sep, self.rnd_ind, self.rnd_frac, self.def_fract)
 
     def __update(self) -> None:
         """
@@ -262,7 +252,6 @@ class CFG(metaclass=SingletonMetaclass):
             self.rnd_ind = int(config.readline().split(' = ')[1])
             self.rnd_frac = int(config.readline().split(' = ')[1])
             self.def_fract = config.readline().split(' = ')[1]
-        print(self.sep, self.rnd_ind, self.rnd_frac, self.def_fract)
 
     def apply_settings(self, sep, rnd_ind, rnd_frac, def_fract) -> None:
         """
