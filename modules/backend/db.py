@@ -1,23 +1,15 @@
 import sqlite3
-from os import path, getcwd
+from os import path
 from datetime import date
-
-
-class SingletonMetaclass(type):
-    _instances = {}
-
-    def __call__(cls, *args, **kwargs):
-        if cls not in cls._instances:
-            instance = super().__call__(*args, **kwargs)
-            cls._instances[cls] = instance
-        return cls._instances[cls]
+from modules.backend.singleton import SingletonMetaclass
 
 
 class DataBase(metaclass=SingletonMetaclass):
     __connection = None
+    __db_name = 'GCDB.sqlite3'
 
-    def __init__(self):
-        DataBase.__connection = self.__create_connection('GCDB.sqlite3')
+    def __init__(self, root_dir):
+        DataBase.__connection = self.__create_connection(path.join(root_dir, self.__db_name))
         self.__create_db()
         self.__headers = ('Collector_name', 'Sampling_date', 'Performer_name', 'Analysis_date', 'Sample', 'Location',
                           'Zone', 'Latitude', 'Longitude', 'Mdφ', 'Mz', 'QDφ', 'σ_1', 'Skqφ', 'Sk_1', 'KG', 'SD')
@@ -37,7 +29,7 @@ class DataBase(metaclass=SingletonMetaclass):
         con = None
         try:
             print('Connection to sqlite DB...')
-            con = sqlite3.connect(path.join(getcwd(), pth))
+            con = sqlite3.connect(pth)
         except sqlite3.Error as e:
             print(f"The error '{e}' occurred")
         return con
@@ -228,36 +220,3 @@ class DataBase(metaclass=SingletonMetaclass):
         WHERE sample = "{'" OR sample = "'.join(samples)}"
         """
         self.run_query(query_s)
-
-
-class CFG(metaclass=SingletonMetaclass):
-    """
-    Config class.
-    """
-    __slots__ = ('sep', 'rnd_ind', 'rnd_frac', 'def_fract')
-
-    def __init__(self):
-        self.sep = None
-        self.rnd_ind = None
-        self.rnd_frac = None
-        self.def_fract = None
-        self.__update()
-
-    def __update(self) -> None:
-        """
-        Update from config.txt
-        """
-        with open('config.txt', 'r') as config:
-            self.sep = config.readline().split(' = ')[1][1:-2]
-            self.rnd_ind = int(config.readline().split(' = ')[1])
-            self.rnd_frac = int(config.readline().split(' = ')[1])
-            self.def_fract = config.readline().split(' = ')[1]
-
-    def apply_settings(self, sep, rnd_ind, rnd_frac, def_fract) -> None:
-        """
-        Write settings to config.txt
-        """
-        with open('config.txt', 'w') as config:
-            config.write(f"sep = \'{sep}\'\nrnd_ind = {rnd_ind}\n"
-                         f"rnd_frac = {rnd_frac}\ndef_fract = {def_fract}")
-        self.__update()
